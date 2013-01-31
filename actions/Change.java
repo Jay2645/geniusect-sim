@@ -22,6 +22,7 @@ public class Change extends Action {
 	public void changeTo(Pokemon changeTo)
 	{
 		switchTo = changeTo;
+		name = switchTo.getName();
 	}
 	
 	public void deploy()

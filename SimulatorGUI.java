@@ -32,26 +32,33 @@ public class SimulatorGUI extends JApplet implements ActionListener
 		@Override
 		public void actionPerformed(ActionEvent e)
 		{
-			Team user = battle.getTeam(teamID, false);
-			Pokemon switchTo = user.getPokemon(((JButton)e.getSource()).getText());
-			Change change = new Change();
-			change.changeTo(switchTo);
-			toDo = Simulator.newTurn(change);
-			Pokemon active = user.getActive();
-			if(active == null)
+			try
 			{
-				System.out.println("None");
-				activePokemon.setText("null");
+				Team user = battle.getTeam(teamID, false);
+				Pokemon switchTo = user.getPokemon(((JButton)e.getSource()).getText());
+				Change change = new Change();
+				change.changeTo(switchTo);
+				toDo = Simulator.newTurn(change);
+				Pokemon active = user.getActive();
+				if(active == null)
+				{
+					System.out.println("None");
+					activePokemon.setText("null");
+				}
+				else
+				{
+					System.out.println(active.getName());
+					activePokemon.setText(active.getName());
+				}
+				swapSides();
+				populateMoveButtons();
+				populatePokemonButtons();
 			}
-			else
+			catch (Exception x)
 			{
-				System.out.println(active.getName());
-				activePokemon.setText(active.getName());
+				System.err.println(x.getMessage());
+				x.printStackTrace();
 			}
-			swapSides();
-			populateMoveButtons();
-			populatePokemonButtons();
-			//startGUI();
 		}
 	};
 	ActionListener moveListener = new ActionListener()
@@ -198,7 +205,10 @@ public class SimulatorGUI extends JApplet implements ActionListener
 		{
 			for(int i = 0; i < moveButtons.length; i++)
 			{
-				moveButtons[i] = new JButton("Move "+(i+1));
+				if(moveButtons[i] == null)
+					moveButtons[i] = new JButton("Move "+(i+1));
+				else
+					moveButtons[i].setText("Move "+(i+1));
 				moveButtons[i].setEnabled(false);
 			}
 			return;
@@ -220,6 +230,7 @@ public class SimulatorGUI extends JApplet implements ActionListener
 		{
 			if(moveset[i] != null && !moveset[i].disabled)
 			{
+				System.err.println(moves[i]);
 				moveButtons[i].setEnabled(true);
 				moves[i] = moveset[i].name;
 				moveButtons[i].setText(moves[i]);
@@ -277,6 +288,8 @@ public class SimulatorGUI extends JApplet implements ActionListener
 	
 	private void populatePokemonButtons()
 	{
+		if(showdownActive)
+			teamID = 0;
 		Team user = battle.getTeam(teamID, false);
 		Pokemon[] team = user.getPokemonTeam();
 		for(int i = 0; i < pokemon.length; i++)

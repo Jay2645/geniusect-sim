@@ -322,6 +322,8 @@ public class Pokemon {
 			return null;
 		for(int i = 0; i < moveNames.length; i++)
 		{
+			if(moveNames[i] == null || moveNames[i].toLowerCase().contains("struggle"))
+				continue;
 			moveset[i] = new Move(moveNames[i], this, shortname);
 		}
 		return moveset;
@@ -1134,8 +1136,12 @@ public class Pokemon {
 		if(importable == null || importable.isEmpty())
 		{
 			importable =
-					name + " @ " + item.name +"\n"+
-					"Trait: "+ability.getName()+"\n";
+					name;
+			if(item != null)
+				importable = importable + " @ " + item.name;
+			importable = importable + "\n";
+			if(ability != null)
+					importable = importable + "Trait: "+ability.getName()+"\n";
 			int count = 0;
 			for(int i = 0; i < evs.length; i++)
 			{
@@ -1149,12 +1155,13 @@ public class Pokemon {
 					importable = importable + evs[i]+" "+Stat.fromInt(i)+" ";
 				}
 			}
-			importable = importable + "\n"+
-			nature.toString() + " Nature \n";
+			importable = importable + "\n";
+			if(nature != null)
+				importable = importable + nature.toString() + " Nature \n";
 			count = 0;
 			for(int i = 0; i < 4; i++)
 			{
-				if(moveset[i] == null || moveset[i].name.toLowerCase().contains("struggle"))
+				if(moveset[i] == null)
 					continue;
 				importable = importable + "- "+ moveset[i].name +"\n";
 			}
@@ -1196,7 +1203,7 @@ public class Pokemon {
 			{
 				if(moveArray[n] == null)
 					continue;
-				if(moveArray[n].equals(moveset[i].name))
+				if(moveArray[n].equals(moveset[i].name) || moveArray[n].toLowerCase().contains("hidden") && moveset[i].name.toLowerCase().contains("hidden"))
 					moveset[i].disabled = false;
 			}
 		}

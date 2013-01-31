@@ -1,6 +1,7 @@
 package geniusectsim.bridge;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +44,8 @@ public class ShowdownHandler
 		if(driver != null)
 			return;
 		driver = new FirefoxDriver();
+		// wait up to 1 second for elements to load
+	    //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 		helper = new ShowdownHelper(driver);
 		helper.open();
 		driver.manage().window().maximize();
@@ -225,15 +228,53 @@ public class ShowdownHandler
 		Pokemon enemyActive = enemy.addPokemon(helper.getCurrentOpponentPokemon(true));
 		usActive = player.changePokemon(usActive);
 		enemyActive = enemy.changePokemon(enemyActive);
-		String ourPoke = usActive.getName();
-		String enemyPoke = enemyActive.getName();
-		usActive.setUsableMoves(helper.getUsableMoves());
-		usActive.setHP(helper.getHP(ourPoke, username), helper.getMaxHP(ourPoke, username));
-		enemyActive.setHP(helper.getHP(enemyPoke, enemyUsername), 100);
-		usActive.setAbility(helper.getAbility(ourPoke, username));
-		enemyActive.setAbility(helper.getAbility(enemyPoke, enemyUsername));
-		usActive.setItem(helper.getItem(ourPoke));
-		enemyActive.setItem(helper.getItem(enemyPoke));
+		String ourPoke = "";
+		String enemyPoke = "";
+		if(usActive != null)
+			ourPoke = usActive.getName();
+		if(enemyActive != null)
+			enemyPoke = enemyActive.getName();
+		try
+		{
+			if(usActive != null)
+				usActive.setUsableMoves(helper.getUsableMoves());
+			List<String> aliveUsList = helper.getAliveTeam(player.getUsername());
+			String[] aliveUs = new String[0];
+			aliveUs = aliveUsList.toArray(aliveUs);
+			for(int i = 0; i < 6; i++)
+			{
+				Pokemon poke = player.getPokemon(i);
+				boolean found = false;
+				for(int a = 0; a < aliveUs.length; a++)
+				{
+					if(poke.nameIs(aliveUs[a]))
+					{
+						found = true;
+						poke.setHP(helper.getHP(aliveUs[a], player.getUsername()), poke.getFullHP());
+						break;
+					}
+				}
+				if(found)
+					continue;
+				poke.setHP(0, poke.getFullHP());
+			}
+			if(!ourPoke.isEmpty())
+			{
+				usActive.setHP(helper.getHP(ourPoke, username), helper.getMaxHP(ourPoke, username));
+				usActive.setAbility(helper.getAbility(ourPoke, username));
+				usActive.setItem(helper.getItem(ourPoke));
+			}
+			if(!enemyPoke.isEmpty())
+			{
+				enemyActive.setHP(helper.getHP(enemyPoke, enemyUsername), 100);
+				enemyActive.setAbility(helper.getAbility(enemyPoke, enemyUsername));
+				enemyActive.setItem(helper.getItem(enemyPoke));
+			}
+		}
+		catch(Exception e)
+		{
+			System.err.println(e.getMessage());
+		}
 		if(whatDo == TurnEndStatus.ATTACK)
 			return new Attack();
 		else if(whatDo == TurnEndStatus.SWITCH)

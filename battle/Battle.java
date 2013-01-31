@@ -159,6 +159,7 @@ public class Battle {
 	
 	public String[] setupTeam()
 	{
+		players[1] = new Team(1, this);
 		return setupTeam(0);
 	}
 	
