@@ -6,8 +6,6 @@ import geniusectsim.bridge.Simulator;
 import geniusectsim.pokemon.Pokemon;
 import geniusectsim.pokemon.Tier;
 
-import java.util.List;
-
 /**
  * A class representing a battle.
  * Battles consist of two teams of six Pokemon each. 
@@ -35,16 +33,7 @@ public class Battle {
 	 * The rest of the line is the export data from Pokemon Showdown's teambuilder.
 	 */
 	private String importableUs =	"Team Name: The Jungle" +
-									"\nDonphan @ Leftovers" +
-									"\nTrait: Sturdy" +
-									"\nEVs: 252 SDef / 28 HP / 228 Def" +
-									"\nCareful Nature" +
-									"\n- Rapid Spin" +
-									"\n- Ice Shard" +
-									"\n- Stealth Rock" +
-									"\n- Earthquake" +
-									"\n"+
-									"\nNinetales @ Leftovers" +
+									"\nHard To Please (Ninetales) @ Leftovers" +
 									"\nTrait: Drought" +
 									"\nEVs: 252 HP / 252 SAtk / 4 SDef" +
 									"\nModest Nature" +
@@ -53,7 +42,16 @@ public class Battle {
 									"\n- Overheat" +
 									"\n- Power Swap" +
 									"\n" +
-									"\nTangrowth @ Leftovers" +
+									"\nAnimal (Donphan) @ Leftovers" +
+									"\nTrait: Sturdy" +
+									"\nEVs: 252 SDef / 28 HP / 228 Def" +
+									"\nCareful Nature" +
+									"\n- Rapid Spin" +
+									"\n- Ice Shard" +
+									"\n- Stealth Rock" +
+									"\n- Earthquake" +
+									"\n"+
+									"\nThe Jungle (Tangrowth) @ Leftovers" +
 									"\nTrait: Chlorophyll" +
 									"\nEVs: 252 HP / 252 Spd / 4 Atk" +
 									"\nNaive Nature" +
@@ -62,7 +60,7 @@ public class Battle {
 									"\n- Hidden Power [Ice]" +
 									"\n- Earthquake" +
 									"\n" +
-									"\nDugtrio @ Focus Sash" +
+									"\nDisease (Dugtrio) @ Focus Sash" +
 									"\nTrait: Arena Trap" +
 									"\nEVs: 252 Spd / 4 Def / 252 Atk" +
 									"\nJolly Nature" +
@@ -71,7 +69,7 @@ public class Battle {
 									"\n- Stone Edge" +
 									"\n- Reversal" +
 									"\n" +
-									"\nHeatran @ Choice Scarf" +
+									"\nSerpentine (Heatran) @ Choice Scarf" +
 									"\nTrait: Flash Fire" +
 									"\nEVs: 252 Spd / 252 SAtk / 4 HP" +
 									"\nModest Nature" +
@@ -80,7 +78,7 @@ public class Battle {
 									"\n- Earth Power" +
 									"\n- Hidden Power [Ice]" +
 									"\n" +
-									"\nDragonite @ Lum Berry" +
+									"\nWorse Everyday (Dragonite) @ Lum Berry" +
 									"\nTrait: Multiscale" +
 									"\nEVs: 252 Spd / 4 HP / 252 Atk" +
 									"\nAdamant Nature" +
@@ -90,67 +88,68 @@ public class Battle {
 									"\n- Outrage";
 	
 			
-	private String importableEnemy =	"Team Name: Phagocyte" +
-										"\nGarchomp @ Choice Scarf" +
-										"\nTrait: Rough Skin" +
-										"\nEVs: 252 Spd / 252 Atk / 4 HP" +
+	private String importableEnemy =	"Team Name: Underuseless" +
+										"\nCrobat @ Black Sludge" +
+										"\nTrait: Inner Focus" +
+										"\nEVs: 176 HP / 192 Atk / 136 Spd / 4 SDef" +
 										"\nJolly Nature" +
-										"\n- Aqua Tail" +
-										"\n- Stone Edge" +
-										"\n- Earthquake" +
-										"\n- Outrage" +
-										"\n" +
-										"\nHeatran @ Choice Scarf" +
-										"\nTrait: Flash Fire" +
-										"\nEVs: 252 SAtk / 252 Spd / 4 SDef" +
-										"\nTimid Nature" +
-										"\n- Overheat" +
-										"\n- Earth Power" +
-										"\n- Hidden Power [Ice]" +
-										"\n- Dark Pulse" +
-										"\n" +
-										"\nLatios @ Choice Specs" +
-										"\nTrait: Levitate" +
-										"\nEVs: 252 Spd / 252 SAtk / 4 HP" +
-										"\nTimid Nature" +
-										"\n- Psyshock" +
-										"\n- Draco Meteor" +
-										"\n- SolarBeam" +
-										"\n- Thunderbolt" +
-										"\n" +
-										"\nScizor @ Leftovers" +
-										"\nTrait: Technician" +
-										"\nEVs: 252 Atk / 252 HP / 4 SDef" +
-										"\nAdamant Nature" +
-										"\n- Bullet Punch" +
-										"\n- Bug Bite" +
-										"\n- Swords Dance" +
 										"\n- Roost" +
+										"\n- Brave Bird" +
+										"\n- Taunt" +
+										"\n- U-turn" +
 										"\n" +
-										"\nVolcarona @ Leftovers" +
-										"\nTrait: Flame Body" +
-										"\nEVs: 216 Def / 240 HP / 52 Spd" +
-										"\nBold Nature" +
-										"\n- Bug Buzz" +
-										"\n- Fiery Dance" +
-										"\n- Quiver Dance" +
-										"\n- Roost" +
-										"\n" +
-										"\nConkeldurr @ Leftovers" +
-										"\nTrait: Guts" +
-										"\nEVs: 120 HP / 252 Atk / 136 SDef" +
+										"\nMachamp @ Lum Berry" +
+										"\nTrait: No Guard" +
+										"\nEVs: 248 Atk / 8 Spd / 240 HP / 12 SDef" +
 										"\nAdamant Nature" +
-										"\n- Bulk Up" +
-										"\n- Drain Punch" +
+										"\n- DynamicPunch" +
+										"\n- Ice Punch" +
 										"\n- Payback" +
-										"\n- Mach Punch";
+										"\n- Bullet Punch" +
+										"\n" +
+										"\nQuagsire @ Leftovers" +
+										"\nTrait: Unaware" +
+										"\nEVs: 252 SDef / 252 HP / 4 Def" +
+										"\nSassy Nature" +
+										"\nIVs: 0 Spd" +
+										"\n- Curse" +
+										"\n- Earthquake" +
+										"\n- Waterfall" +
+										"\n- Recover" +
+										"\n" +
+										"\nArcanine @ Leftovers" +
+										"\nTrait: Intimidate" +
+										"\nEVs: 248 HP / 252 Def / 8 SDef" +
+										"\nBold Nature" +
+										"\n- Flamethrower" +
+										"\n- Hidden Power [Grass]" +
+										"\n- Morning Sun" +
+										"\n- Will-O-Wisp" +
+										"\n" +
+										"\nSigilyph @ Flame Orb" +
+										"\nTrait: Magic Guard" +
+										"\nEVs: 252 HP / 136 Def / 120 Spd" +
+										"\nTimid Nature" +
+										"\n- Cosmic Power" +
+										"\n- Psycho Shift" +
+										"\n- Roost" +
+										"\n- Stored Power" +
+										"\n" +
+										"\nSuicune @ Leftovers" +
+										"\nTrait: Pressure" +
+										"\nEVs: 252 Def / 252 HP / 4 SDef" +
+										"\nBold Nature" +
+										"\n- Scald" +
+										"\n- Calm Mind" +
+										"\n- Rest" +
+										"\n- Sleep Talk";
 
 	private Team players[] = new Team[2];
 	private int turnsToSimulate = 150; //How many turns we simulate, if Showdown is not running?
 	private int turnCount = 0; //The current turn.
 	private boolean playing = false; // TRUE if we have found a battle.
 	private boolean firstTurn = true; // TRUE if it is the first turn.
-	private Action lastTurnUs;
+	//private Action lastTurnUs;
 	private Action lastTurnEnemy;
 	//private ShowdownHelper showdown = null;
 	private Weather weather = Weather.None;
@@ -417,6 +416,14 @@ public class Battle {
 	public void setTurnCount(int i) 
 	{
 		turnCount = i;
+	}
+
+	/**
+	 * @param usImportable
+	 */
+	public void setUsImportable(String usImportable) 
+	{
+		importableUs = usImportable;
 	}
 
 	/**

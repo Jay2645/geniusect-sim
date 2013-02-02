@@ -1,7 +1,7 @@
 package geniusectsim.bridge;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,7 +13,6 @@ import geniusectsim.actions.Action;
 import geniusectsim.actions.Attack;
 import geniusectsim.actions.Change;
 import geniusectsim.battle.Battle;
-import geniusectsim.battle.Damage;
 import geniusectsim.battle.Team;
 import geniusectsim.moves.Move;
 import geniusectsim.pokemon.Pokemon;
@@ -49,9 +48,11 @@ public class ShowdownHandler
 		helper = new ShowdownHelper(driver);
 		helper.open();
 		driver.manage().window().maximize();
+		Random r = new Random();
+		int randomNumber = r.nextInt(9999);
 		try
 		{
-			helper.login("Geniusect2645","");
+			helper.login("Geniusect"+randomNumber,"");
 		}
 		catch(Exception e)
 		{
@@ -116,30 +117,16 @@ public class ShowdownHandler
 		for(int n = 0; n < ourPokes.size(); n++)
 		{
 			Pokemon addition = user.addPokemon(ourPokes.get(n));
-			List<String> ourMoves = helper.getMoves(ourPokes.get(n), true);
-			addition.addMove(ourMoves, true);
+			//TODO: Get nicknames.
+			if(n == 0)
+			{
+				List<String> ourMoves = helper.getMoves(ourPokes.get(n), true);
+				addition.addMove(ourMoves, true);
+			}
 			addition.setAbility(helper.getAbility(ourPokes.get(n), userName));
-			addition.setItem(helper.getItem(ourPokes.get(n)));
+			addition.setItem(helper.getItem(ourPokes.get(n),userName));
 			addition.setLevel(helper.getLevel(ourPokes.get(n), userName));
 			System.out.println(ourPokes.get(n)+", "+userName);
-		}
-	}
-	
-	protected static void updateLastTurn()
-	{
-		String lastTurn = helper.getBattleLog().getLastTurnText();
-		findPokemon(lastTurn);
-		findMove(lastTurn);
-		for(int t = 0; t < 2; t++)
-		{
-			Team team = battle.getTeam(t, false);
-			if(team.getActive() != null)
-			{
-				String owner = team.getUsername();
-				Status status = Status.statusFromString(helper.getStatus(team.getActive().getName(), owner));
-				if(status != null)
-					team.getActive().inflictStatus(status);
-			}
 		}
 	}
 	
@@ -220,67 +207,80 @@ public class ShowdownHandler
 	private static Action nextTurn()
 	{
 		whatDo = helper.waitForNextTurn(10);
-		Team player = battle.getTeam(0, false);
-		Team enemy = battle.getTeam(1, false);
-		String username = player.getUsername();
-		String enemyUsername = enemy.getUsername();
-		Pokemon usActive = player.getPokemon(helper.getCurrentPokemon(true));
-		Pokemon enemyActive = enemy.addPokemon(helper.getCurrentOpponentPokemon(true));
-		usActive = player.changePokemon(usActive);
-		enemyActive = enemy.changePokemon(enemyActive);
-		String ourPoke = "";
-		String enemyPoke = "";
-		if(usActive != null)
-			ourPoke = usActive.getName();
-		if(enemyActive != null)
-			enemyPoke = enemyActive.getName();
-		try
-		{
-			if(usActive != null)
-				usActive.setUsableMoves(helper.getUsableMoves());
-			List<String> aliveUsList = helper.getAliveTeam(player.getUsername());
-			String[] aliveUs = new String[0];
-			aliveUs = aliveUsList.toArray(aliveUs);
-			for(int i = 0; i < 6; i++)
-			{
-				Pokemon poke = player.getPokemon(i);
-				boolean found = false;
-				for(int a = 0; a < aliveUs.length; a++)
-				{
-					if(poke.nameIs(aliveUs[a]))
-					{
-						found = true;
-						poke.setHP(helper.getHP(aliveUs[a], player.getUsername()), poke.getFullHP());
-						break;
-					}
-				}
-				if(found)
-					continue;
-				poke.setHP(0, poke.getFullHP());
-			}
-			if(!ourPoke.isEmpty())
-			{
-				usActive.setHP(helper.getHP(ourPoke, username), helper.getMaxHP(ourPoke, username));
-				usActive.setAbility(helper.getAbility(ourPoke, username));
-				usActive.setItem(helper.getItem(ourPoke));
-			}
-			if(!enemyPoke.isEmpty())
-			{
-				enemyActive.setHP(helper.getHP(enemyPoke, enemyUsername), 100);
-				enemyActive.setAbility(helper.getAbility(enemyPoke, enemyUsername));
-				enemyActive.setItem(helper.getItem(enemyPoke));
-			}
-		}
-		catch(Exception e)
-		{
-			System.err.println(e.getMessage());
-		}
+		postTurnUpdate();
 		if(whatDo == TurnEndStatus.ATTACK)
 			return new Attack();
 		else if(whatDo == TurnEndStatus.SWITCH)
 			return new Change();
 		battle.gameOver(whatDo == TurnEndStatus.WON);
 		return null;
+	}
+	
+	private static void postTurnUpdate()
+	{
+		String lastTurn = helper.getBattleLog().getLastTurnText();
+		findPokemon(lastTurn);
+		findMove(lastTurn);
+		for(int t = 0; t < 2; t++)
+		{
+			Team team = battle.getTeam(t, false);
+			String username = team.getUsername();
+			Pokemon usActive = team.addPokemon(helper.getCurrentPokemon(username, true));
+			if(usActive == null || !usActive.nameIs(team.getActive().getName()))
+				usActive = team.changePokemon(usActive);
+			String ourPoke = usActive.getName();
+			try
+			{
+				if(usActive != null)
+				{
+					usActive.setUsableMoves(helper.getUsableMoves());
+					Status status = Status.statusFromString(helper.getStatus(ourPoke, username));
+					if(status != null)
+						usActive.inflictStatus(status);
+				}
+				/*List<String> aliveUsList = helper.getAliveTeam(player.getUsername());
+				String[] aliveUs = new String[0];
+				aliveUs = aliveUsList.toArray(aliveUs);
+				for(int i = 0; i < 6; i++)
+				{
+					Pokemon poke = team.getPokemon(i);
+					boolean found = false;
+					for(int a = 0; a < aliveUs.length; a++)
+					{
+						if(poke.nameIs(aliveUs[a]))
+						{
+							found = true;
+							poke.setHP(helper.getHP(aliveUs[a], player.getUsername()), poke.getFullHP());
+							break;
+						}
+					}
+					if(found)
+						continue;
+					poke.setHP(0, poke.getFullHP());
+				}*/
+				for(int i = 0; i < 6; i++)
+				{
+					Pokemon poke = team.getPokemon(i);
+					String name = poke.getName();
+					String ability = helper.getAbility(name, username);
+					String item = helper.getItem(name, username);
+					int hp = poke.getHealth();
+					if(hp != helper.getHP(name, username))
+					{
+						poke.setHP(helper.getHP(name, username), helper.getMaxHP(name, username));
+						hp = poke.getHealth();
+					}
+					if(ability != null && (poke.getAbility() == null || !poke.getAbility().getName().toLowerCase().contains(ability.toLowerCase())))
+						poke.setAbility(ability);
+					if(item != null && (poke.getItem() == null || !poke.getItem().name.toLowerCase().contains(item.toLowerCase())))
+						poke.setItem(item);
+				}
+			}
+			catch(Exception e)
+			{
+				System.err.println(e.getMessage());
+			}
+		}
 	}
 
 	/**
@@ -323,6 +323,7 @@ public class ShowdownHandler
 		Pattern p = Pattern.compile("(.+) used (.+)!", Pattern.MULTILINE);
 		Matcher m = p.matcher(text);
 		Team t = null;
+		Pokemon[] moveOrder = new Pokemon[2];
 		//Team.players[0] = new Team(0);
 		//Team.players[1] = new Team(1);
 		while(m.find())
@@ -352,10 +353,18 @@ public class ShowdownHandler
 					dmg = Integer.parseInt(damage);
 				}
 			}
+			if(moveOrder[0] == null)
+				moveOrder[0] = poke;
+			else
+				moveOrder[1] = poke;
 			System.out.println(tempname+" used "+tempmove+" for "+dmg+"% damage. Was it a crit? "+crit);
 			poke.onNewTurn(tempmove, dmg, crit);
 		}
 		findDrops(text);
+		if(moveOrder[0] != null && moveOrder[1] != null && moveOrder[1].isFasterThan(moveOrder[0]))
+		{
+			moveOrder[0].setMinSpeed(moveOrder[1].getBoostedStat(Stat.Spe));
+		}
 	}
 	
 	/**
@@ -468,6 +477,7 @@ public class ShowdownHandler
 	{
 		boolean switched = false;
 		String[] pokemon = new String[2];
+		String[] nicknames = new String[2];
 		Pattern faintP = Pattern.compile("(.+) fainted!", Pattern.MULTILINE);
 		Matcher faintM = faintP.matcher(text);
 		while(faintM.find())
@@ -489,11 +499,15 @@ public class ShowdownHandler
 		}
 		pokemon[0] = helper.getCurrentPokemon(true);
 		pokemon[1] = helper.getCurrentOpponentPokemon(true);
+		nicknames[0] = helper.getCurrentPokemon(false);
+		nicknames[1] = helper.getCurrentOpponentPokemon(false);
 		for(int i = 0; i < pokemon.length; i++)
 		{
 			if(pokemon[i] != null)
 			{
 				Pokemon poke = battle.getTeam(i, false).addPokemon(pokemon[i]); //Not getPokemon because we don't know if we've seen it yet.
+				if(nicknames[i] != null && !nicknames[i].toLowerCase().contains(pokemon[i].toLowerCase()))
+					poke.setNickname(nicknames[i]);
 				poke.onSendOut();
 				switched = true;
 			}

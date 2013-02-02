@@ -6,6 +6,9 @@
 
 package geniusectsim.pokemon;
 
+import geniusectsim.moves.Move;
+import geniusectsim.moves.MoveType;
+
 
 public enum Nature {
 	Hardy("Hardy", Stat.Atk,Stat.Atk), Docile("Docile", Stat.Def,Stat.Def), Serious("Serious", Stat.Spe,Stat.Spe), 
@@ -58,13 +61,15 @@ public enum Nature {
 	
 	public String toString()
 	{
+		if(name == null)
+			return "Hardy";
 		return name;
 	}
 	
 	public static Nature fromString(String n)
 	{
 		//I didn't want to have to write 50000 if statements because jaycode but oh well.
-			if(n.toLowerCase().startsWith("har"))
+			if(n == null || n.toLowerCase().startsWith("har"))
 				return Nature.Hardy;
 			else if(n.toLowerCase().startsWith("d"))
 				return Nature.Docile;
@@ -115,5 +120,74 @@ public enum Nature {
 			else if(n.toLowerCase().startsWith("n"))
 				return Nature.Naive;
 		else return Nature.Hardy;
+	}
+
+	/**
+	 * @param spe
+	 * @param moveset
+	 * @return
+	 */
+	public static Nature findPositiveNature(Stat stat, Move[] moveset) 
+	{
+		Nature[] natureList = new Nature[10];
+		for(Nature nature : Nature.values())
+		{
+			if(nature.mod[0] == stat)
+			{
+				for(int i = 0; i < natureList.length; i++)
+				{
+					if(natureList[i] != null)
+						continue;
+					else
+					{
+						natureList[i] = nature;
+						break;
+					}
+				}
+			}
+		}
+		Stat reduce = null;
+		for(Move move : moveset)
+		{
+			MoveType type = move.getMoveType();
+			if(type == MoveType.Special)
+			{
+				if(reduce == null)
+				{
+					reduce = Stat.Atk;
+				}
+				if(reduce == Stat.SpA)
+				{
+					if(stat == Stat.Spe)
+						reduce = Stat.SpD;
+					else
+						reduce = Stat.Spe;
+				}
+			}
+			else if(type == MoveType.Physical)
+			{
+				if(reduce == null)
+				{
+					reduce = Stat.SpA;
+				}
+				if(reduce == Stat.Atk)
+				{
+					if(stat == Stat.Spe)
+						reduce = Stat.SpD;
+					else
+						reduce = Stat.Spe;
+				}
+			}
+		}
+		Nature foundNature = Nature.Hardy;
+		for(Nature nature : natureList)
+		{
+			if(nature.mod[1] == reduce)
+			{
+				foundNature = nature;
+				break;
+			}
+		}
+		return foundNature;
 	}
 }

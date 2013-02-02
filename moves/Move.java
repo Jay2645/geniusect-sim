@@ -120,7 +120,7 @@ public class Move {
 				user.getEnemy().getTeam().addHazard(EntryHazard.Spikes);
 			}
 		}
-		if(user.getItem() != null && user.getItem().name.toLowerCase().startsWith("choice"))
+		if(user.getItem() != null && user.getItem().name != null && user.getItem().name.toLowerCase().startsWith("choice"))
 		{
 			user.setLockedInto(this);
 			Move[] moveset = user.getMoveset();
@@ -267,5 +267,18 @@ public class Move {
 	public void setMoveType(MoveType type)
 	{
 		moveType = type;
+	}
+
+	/**
+	 * @return
+	 */
+	public boolean isPhysical() 
+	{
+		return moveType == MoveType.Physical;
+	}
+	
+	public boolean isSpecial()
+	{
+		return moveType == MoveType.Special;
 	}
 }

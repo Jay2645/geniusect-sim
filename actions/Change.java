@@ -45,7 +45,7 @@ public class Change extends Action {
 		Team team = change.getTeam();
 		int rocksCount = team.getHazardCount(EntryHazard.StealthRock);
 		int spikesCount = team.getHazardCount(EntryHazard.Spikes);
-		int toxicSpikesCount = team.getHazardCount(EntryHazard.ToxicSpikes);
+		//int toxicSpikesCount = team.getHazardCount(EntryHazard.ToxicSpikes);
 		if(rocksCount > 0)
 		{
 			double effectiveness = Pokequations.damageMultiplier(Type.Rock, change.getTypes());

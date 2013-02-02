@@ -46,6 +46,7 @@ public class Pokemon {
 	protected ArrayList<Type> immunities = new ArrayList<Type>();
 	
 	protected Move[] moveset = new Move[4];
+	protected String[] movesUsedSinceDeploy = new String[4];
 	protected Move lastMoveUsed = null;
 	
 	protected int[] base = {0,0,0,0,0,0};
@@ -108,6 +109,9 @@ public class Pokemon {
 	public void onSendOut()
 	{
 		//Called when this Pokemon enters the battle.
+		damage(Change.calculateSwitchDamagePercent(this));
+		//if(!alive)
+			//return;
 		active = true;
 		enemyTeam = Team.getEnemyTeam(team.getTeamID());
 		if(enemyTeam != null)
@@ -117,7 +121,8 @@ public class Pokemon {
 		team.setActive(this);
 		if(ability != null)
 			ability.onSendOut();
-		damage(Change.calculateSwitchDamagePercent(this));
+		else
+			System.out.println("(Pokemon) "+name+"'s ability is null.");
 		status.resetActive();
 	}
 	
@@ -128,6 +133,7 @@ public class Pokemon {
 		team.setActive(null);
 		resetBoosts();
 		effects.clear();
+		movesUsedSinceDeploy = new String[4];
 		lockedInto = null;
 		for(int i = 0; i < moveset.length; i++)
 		{
@@ -145,7 +151,8 @@ public class Pokemon {
 			ability.onFaint(enemy,enemy.lastMoveUsed);
 		System.err.println(name+" has died!");
 		alive = false;
-		enemy.onKill(name);
+		if(enemy != null)
+			enemy.onKill(name);
 		if(!active)
 			onWithdraw();
 	}
@@ -157,7 +164,6 @@ public class Pokemon {
 	
 	public int onNewAttack(Damage damage)
 	{
-		//Called when predicting future events.
 		//Whereas the method below takes the moves that THIS Pokemon did, this method takes a move the OTHER Pokemon did.
 		//It returns the amount of damage done in this turn.
 		int preHP = hpPercent;
@@ -184,7 +190,6 @@ public class Pokemon {
 		if(moveUsed != null)
 		{
 			moveUsed.onMoveUsed(enemy, damageDone, crit);
-			lastMoveUsed = moveUsed;
 		}
 		if(ability != null)
 			ability.onNewTurn();
@@ -193,6 +198,8 @@ public class Pokemon {
 	
 	public int restoreHP(int restorePercent)
 	{
+		if(restorePercent < 0)
+			restorePercent *= -1;
 		int restoreAmount = restorePercent + hpPercent;
 		if(restoreAmount > 100)
 		{
@@ -337,11 +344,19 @@ public class Pokemon {
 	 */
 	public Move addMove(String moveName, boolean shortname)
 	{
-		System.out.println(moveName);
+		System.out.println(name+" is adding "+moveName+" to its moveset.");
+		for(int i = 0; i < 4; i++)
+		{
+			if(movesUsedSinceDeploy[i] != null && movesUsedSinceDeploy[i].equals(moveName))
+				break;
+			if(movesUsedSinceDeploy[i] == null)
+				movesUsedSinceDeploy[i] = moveName;
+		}
 		for(int n = 0; n < moveset.length; n++)
 		{
 			//First iterate through all moves to make sure we don't already have this move.
-			if(moveset[n] != null && moveset[n].name.toLowerCase().startsWith(moveName.toLowerCase()))
+			if(moveset[n] != null && (	moveset[n].name.toLowerCase().startsWith(moveName.toLowerCase()) && !shortname || 
+										moveset[n].shortname.equals(moveName) && shortname))
 			{
 				System.out.println(name+" already has move "+moveName+"!");
 				return moveset[n];
@@ -355,15 +370,13 @@ public class Pokemon {
 			if(moveset[i] == null || moveset[i].name.toLowerCase().startsWith("struggle") && !moveName.toLowerCase().startsWith("struggle"))
 			{
 				System.err.println("Adding "+moveName+" to "+name+"'s move list.");
-				Throwable t = new Throwable();
-				t.printStackTrace();
 				moveset[i] = new Move(moveName,this,shortname);
 				if(moveName.toLowerCase().startsWith("hidden power"))
 				{
 					HiddenPower hp = new HiddenPower(moveset[i]); 
 					if(moveset[i].type == null)
 					{
-
+						//TODO: Calculate hidden power type.
 					}
 					else
 					{
@@ -372,6 +385,7 @@ public class Pokemon {
 					moveset[i] = hp;
 				}
 				move = moveset[i];
+				break;
 			}
 		}
 		return move;
@@ -411,6 +425,36 @@ public class Pokemon {
 	 */
 	public Ability getAbility()
 	{
+		if(ability == null)
+		{
+			double score = -11;
+			Ability likely = null;
+			if(abilityZero != null)
+			{
+				score = abilityZero.getScore();
+				likely = abilityZero;
+			}
+			if(abilityOne != null)
+			{
+				double oneScore = abilityOne.getScore();
+				if(oneScore > score)
+				{
+					score = oneScore;
+					likely = abilityOne;
+				}
+			}
+			//TODO: Check if DW ability is released.
+			if(abilityDW != null)
+			{
+				double dwScore = abilityDW.getScore();
+				if(dwScore > score)
+				{
+					score = dwScore;
+					likely = abilityDW;
+				}
+			}
+			return likely;
+		}
 		return ability;
 	}
 	
@@ -812,10 +856,12 @@ public class Pokemon {
 		
 		immunities = clone.immunities;
 		
-		moveset[0] = new Move(clone.moveset[0]);
-		moveset[1] = new Move(clone.moveset[1]);
-		moveset[2] = new Move(clone.moveset[2]);
-		moveset[3] = new Move(clone.moveset[3]);
+		for(int i = 0; i < 4; i++)
+		{
+			if(clone.moveset[i] == null)
+				continue;
+			moveset[i] = new Move(clone.moveset[i]);
+		}
 		
 		base = clone.base;
 		ivs = clone.ivs;
@@ -1133,40 +1179,46 @@ public class Pokemon {
 	
 	public String getImportable()
 	{
-		if(importable == null || importable.isEmpty())
+		if(nickName == null || nickName.isEmpty())
 		{
-			importable =
-					name;
-			if(item != null)
-				importable = importable + " @ " + item.name;
-			importable = importable + "\n";
-			if(ability != null)
-					importable = importable + "Trait: "+ability.getName()+"\n";
-			int count = 0;
-			for(int i = 0; i < evs.length; i++)
-			{
-				if(evs[i] > 0)
-				{
-					if(count == 0)
-						importable = importable +"EVs: ";
-					else
-						importable = importable+"/ ";
-					count++;
-					importable = importable + evs[i]+" "+Stat.fromInt(i)+" ";
-				}
-			}
-			importable = importable + "\n";
-			if(nature != null)
-				importable = importable + nature.toString() + " Nature \n";
-			count = 0;
-			for(int i = 0; i < 4; i++)
-			{
-				if(moveset[i] == null)
-					continue;
-				importable = importable + "- "+ moveset[i].name +"\n";
-			}
-			importable = importable + "\n";
+			importable = name;
 		}
+		else
+		{
+			importable = nickName+" ("+name+")";
+		}
+		if(item != null && item.name != null)
+			importable = importable + " @ " + item.name;
+		importable = importable + "\n";
+		if(ability != null)
+				importable = importable + "Trait: "+ability.getName()+"\n";
+		int count = 0;
+		for(int i = 0; i < evs.length; i++)
+		{
+			if(evs[i] > 0)
+			{
+				if(count == 0)
+					importable = importable +"EVs: ";
+				else
+					importable = importable+"/ ";
+				count++;
+				importable = importable + evs[i]+" "+Stat.fromInt(i)+" ";
+			}
+		}
+		if(count > 0)
+			importable = importable + "\n";
+		if(nature != null)
+			importable = importable + nature.toString() + " Nature \n";
+		count = 0;
+		for(int i = 0; i < 4; i++)
+		{
+			if(moveset[i] == null)
+				continue;
+			importable = importable + "- "+ moveset[i].name +"\n";
+			count++;
+		}
+		if(count > 0)
+			importable = importable + "\n";
 		return importable;
 	}
 
@@ -1196,6 +1248,11 @@ public class Pokemon {
 	{
 		String[] moveArray = new String[4];
 		moveArray = usableMoves.toArray(moveArray);
+		setUsableMoves(moveArray);
+	}
+	
+	private void setUsableMoves(String[] moveArray)
+	{
 		for(int i = 0; i < moveset.length; i++)
 		{
 			moveset[i].disabled = true;
@@ -1207,5 +1264,116 @@ public class Pokemon {
 					moveset[i].disabled = false;
 			}
 		}
+	}
+
+	/**
+	 * Calculates the EVs needed to outspeed a given speed.
+	 * @param boostedStat
+	 */
+	public void setMinSpeed(int boostedStat) 
+	{
+		int[] originalEVs = evs;
+		int originalLeft = evsLeft;
+		while(boostedStats[Stat.Spe.toInt()] > boostedStat && evsLeft > 3)
+		{
+			evs[Stat.Spe.toInt()] += 4;
+			evsLeft -= 4;
+			stats[Stat.Spe.toInt()] = Pokequations.calculateStat(Stat.Spe, this);
+			boostedStats[Stat.Spe.toInt()] = Pokequations.statBoost(boosts[Stat.Spe.toInt()],stats[Stat.Spe.toInt()]);
+			System.out.println("Finding min speed. Current: "+boostedStats[Stat.Spe.toInt()]+"; must be larger than "+boostedStat);
+		}
+		if(boostedStats[Stat.Spe.toInt()] > boostedStat && evsLeft <= 0)
+		{
+			Nature originalNature = nature;
+			if(nature == Nature.Hardy)
+			{
+				nature = Nature.findPositiveNature(Stat.Spe, moveset);
+				//The results were skewed, so this EV spread might be inaccurate and we need to try again.
+				evs = originalEVs;
+				evsLeft = originalLeft;
+				stats[Stat.Spe.toInt()] = Pokequations.calculateStat(Stat.Spe, this);
+				boostedStats[Stat.Spe.toInt()] = Pokequations.statBoost(boosts[Stat.Spe.toInt()],stats[Stat.Spe.toInt()]);
+				setMinSpeed(boostedStat);
+			}
+			if(item == null)
+			{
+				int count = 0;
+				for(int i = 0; i < 4; i++)
+				{
+					if(movesUsedSinceDeploy[i] == null)
+						continue;
+					else
+						count++;
+				}
+				if(count == 1)
+				{
+					item = new Item("Choice Scarf");
+					//The results were skewed, so this EV spread might be inaccurate and we need to try again.
+					evs = originalEVs;
+					evsLeft = originalLeft;
+					nature = originalNature;
+					stats[Stat.Spe.toInt()] = Pokequations.calculateStat(Stat.Spe, this);
+					boostedStats[Stat.Spe.toInt()] = Pokequations.statBoost(boosts[Stat.Spe.toInt()],stats[Stat.Spe.toInt()]);
+					setMinSpeed(boostedStat);
+				}
+			}
+			else
+			{
+				stats[Stat.Spe.toInt()] = Pokequations.calculateStat(Stat.Spe, this);
+				boostedStats[Stat.Spe.toInt()] = Pokequations.statBoost(boosts[Stat.Spe.toInt()],stats[Stat.Spe.toInt()]);
+			}
+		}
+	}
+
+	/**
+	 * @param damageAmount
+	 * @return
+	 */
+	public int percentToHP(int damageAmount) 
+	{
+		damageAmount /= 100;
+		return Math.round(hpPercent * damageAmount);
+	}
+
+	/**
+	 * Gets our base stats.
+	 * @return (int[]): Our base stats.
+	 */
+	public int[] getBaseStats() 
+	{
+		return base;
+	}
+
+	/**
+	 * Set all base stats at once.
+	 * @param baseStats (int[]): The base stats to set.
+	 */
+	public void setBaseStats(int[] baseStats) 
+	{
+		for(int i = 0; i < baseStats.length; i++)
+		{
+			setBaseStat(i, baseStats[i]);
+		}
+	}
+
+	/**
+	 * Returns TRUE if the Pokemon has this nickname, else FALSE.
+	 * @param nick (String): The nickname to check.
+	 * @return TRUE if the Pokemon has this nickname, else FALSE.
+	 */
+	public boolean nicknameIs(String nick) 
+	{
+		if(nick == null || nick.isEmpty() || nickName == null || nickName.isEmpty())
+			return false;
+		return nick.toLowerCase().contains(nickName.toLowerCase());
+	}
+
+	/**
+	 * Sets our nickname to a string.
+	 * @param string (String): What to set our nickname to.
+	 */
+	public void setNickname(String string) 
+	{
+		nickName = string;
 	}
 }

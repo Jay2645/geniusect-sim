@@ -15,13 +15,19 @@ import geniusectsim.pokemon.Pokemon;
 import geniusectsim.pokemon.Stat;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SQLHandler {
 	
 	private static Connection conn = null;
+	private static Map<String, Pokemon> pokeCache = new HashMap<String, Pokemon>();
+	private static Map<String, Move> moveCache = new HashMap<String, Move>();
 	
 	public static void openConnection()
 	{
+		Throwable t = new Throwable();
+		t.printStackTrace();
 		if(conn == null)
 		{
 			System.out.println("Opening connection to SQL server.");
@@ -43,123 +49,199 @@ public class SQLHandler {
 		
 	public static Move queryMove(Move m)
 	{
-		openConnection();
-		String move = m.name;
-		System.out.println("Sending SQL query for move: " + move);
-		//ArrayList hiddenPower = HiddenPowerCalculator.calculateHiddenPower();
+		String name = m.name;
+		Type type = null;
+		String shortname = "";
+		int power = 0;
+		MoveType moveType = null;
+		int accuracy = 0;
+		int pp = 0;
+		Target target = null;
+		int priority = 0;
+		boolean updateCache = false;
+		if(moveCache.containsKey(name))
 		{
-			try
+			Move cached = moveCache.get(name);
+			type = cached.type;
+			shortname = cached.shortname;
+			power = cached.power;
+			moveType = cached.getMoveType();
+			accuracy = cached.accuracy;
+			pp = cached.pp;
+			target = cached.target;
+			priority = cached.priority;
+		}
+		else
+		{
+			openConnection();
+			System.out.println("Sending SQL query for move: " + name);
+			//ArrayList hiddenPower = HiddenPowerCalculator.calculateHiddenPower();
 			{
-				PreparedStatement s = conn.prepareStatement("SELECT type, power, shortname, accuracy, category, pp, target, priority, move.desc FROM move WHERE name= ? ORDER BY name ASC");
-				s.setString(1, move);
-				s.executeQuery();
-				ResultSet rs = s.getResultSet ();
-				int count = 0;
-				while (rs.next ())
+				try
 				{
-					m.type = Type.fromSQL(rs.getString("type"));
-					m.shortname = rs.getString("shortname");
-					m.power = Integer.parseInt(rs.getString("power"));
-					String moveCategory = rs.getString("category");
-					if(moveCategory.toLowerCase().startsWith("special"))
-						m.setMoveType(MoveType.Special);
-					else if(moveCategory.toLowerCase().startsWith("status"))
-						m.setMoveType(MoveType.Status);
-					else
-						m.setMoveType(MoveType.Physical);
-					m.accuracy = Integer.parseInt(rs.getString("accuracy"));
-					m.pp = Integer.parseInt(rs.getString("pp"));
-					m.target = Target.fromString(rs.getString("target"));
-					m.priority = Integer.parseInt(rs.getString("priority"));
-					/*if(move.startsWith("Hidden Power")) //TODO: Hidden Power calculation.
-						{
-						moveType = hiddenPower.get(1).toString();
-						movePower = hiddenPower.get(0).toString();
-						}*/
-					System.out.println (
-					"Name: " + m.name +
-					", Shortname: " + m.shortname +
-					", Type: " + m.type +
-					", Power: " + m.power +
-					", Move Type: "+m.getMoveType() +
-					", Accuracy: " + m.accuracy +
-					", Target: " + m.target +
-					", Priority: " + m.priority +
-					", PP: " + m.pp);
-					++count;
+					PreparedStatement s = conn.prepareStatement("SELECT type, power, shortname, accuracy, category, pp, target, priority, move.desc FROM move WHERE name= ? ORDER BY name ASC");
+					s.setString(1, name);
+					s.executeQuery();
+					ResultSet rs = s.getResultSet ();
+					int count = 0;
+					while (rs.next ())
+					{
+						type = Type.fromSQL(rs.getString("type"));
+						shortname = rs.getString("shortname");
+						power = Integer.parseInt(rs.getString("power"));
+						String moveCategory = rs.getString("category");
+						if(moveCategory.toLowerCase().startsWith("special"))
+							moveType = MoveType.Special;
+						else if(moveCategory.toLowerCase().startsWith("status"))
+							moveType = MoveType.Status;
+						else
+							moveType = MoveType.Physical;
+						accuracy = Integer.parseInt(rs.getString("accuracy"));
+						pp = Integer.parseInt(rs.getString("pp"));
+						target = Target.fromString(rs.getString("target"));
+						priority = Integer.parseInt(rs.getString("priority"));
+						/*if(move.startsWith("Hidden Power")) //TODO: Hidden Power calculation.
+							{
+							moveType = hiddenPower.get(1).toString();
+							movePower = hiddenPower.get(0).toString();
+							}*/
+						++count;
+					}
+					rs.close ();
+					s.close ();
+					updateCache = true;
+					System.out.println (count + " rows were retrieved");
 				}
-				rs.close ();
-				s.close ();
-				System.out.println (count + " rows were retrieved");
-			}
-			catch (SQLException e)
-			{
-				System.err.println ("Error message: " + e.getMessage ());
-				System.err.println ("Error number: " + e.getErrorCode ());
+				catch (SQLException e)
+				{
+					System.err.println ("Error message: " + e.getMessage ());
+					System.err.println ("Error number: " + e.getErrorCode ());
+					closeConnection();
+				}
 			}
 		}
-		closeConnection();
+		System.out.println (
+			"Name: " + name +
+			"\n, Shortname: " + shortname +
+			"\n, Type: " + type +
+			"\n, Power: " + power +
+			"\n, Move Type: "+moveType +
+			"\n, Accuracy: " + accuracy +
+			"\n, Target: " + target +
+			"\n, Priority: " + priority +
+			"\n, PP: " + pp);
+		m.name = name;
+		m.shortname = shortname;
+		m.type = type;
+		m.setMoveType(moveType);
+		m.accuracy = accuracy;
+		m.target = target;
+		m.priority = priority;
+		m.pp = pp;
+		if(updateCache)
+		{
+			closeConnection();
+			moveCache.put(name, new Move(m));
+			moveCache.put(shortname, new Move(m));
+		}
 		return m;
 	}
 	
 	public static Move queryMoveShortname(Move m)
 	{
 		openConnection();
-		String move = m.shortname;
-		System.out.println("Sending SQL query for move: " + move);
-		//ArrayList hiddenPower = HiddenPowerCalculator.calculateHiddenPower();
+		String name = "";
+		Type type = null;
+		String shortname = m.shortname;
+		int power = 0;
+		MoveType moveType = null;
+		int accuracy = 0;
+		int pp = 0;
+		Target target = null;
+		int priority = 0;
+		boolean updateCache = false;
+		if(moveCache.containsKey(shortname))
 		{
+			Move cached = moveCache.get(shortname);
+			type = cached.type;
+			name = cached.name;
+			power = cached.power;
+			moveType = cached.getMoveType();
+			accuracy = cached.accuracy;
+			pp = cached.pp;
+			target = cached.target;
+			priority = cached.priority;
+		}
+		else
+		{
+			System.out.println("Sending SQL query for move: " + shortname);
+			//ArrayList hiddenPower = HiddenPowerCalculator.calculateHiddenPower();
 			try
 			{
 				PreparedStatement s = conn.prepareStatement("SELECT type, power, name, accuracy, category, pp, target, priority, move.desc FROM move WHERE shortname= ? ORDER BY name ASC");
-				s.setString(1, move);
+				s.setString(1, shortname);
 				s.executeQuery();
 				ResultSet rs = s.getResultSet ();
 				int count = 0;
 				while (rs.next ())
 				{
-					m.name = rs.getString("name");
-					m.type = Type.fromSQL(rs.getString("type"));
-					m.power = Integer.parseInt(rs.getString("power"));
+					name = rs.getString("name");
+					type = Type.fromSQL(rs.getString("type"));
+					power = Integer.parseInt(rs.getString("power"));
 					String moveCategory = rs.getString("category");
 					if(moveCategory.toLowerCase().startsWith("special"))
-						m.setMoveType(MoveType.Special);
+						moveType = MoveType.Special;
 					else if(moveCategory.toLowerCase().startsWith("status"))
-						m.setMoveType(MoveType.Status);
+						moveType = MoveType.Status;
 					else
-						m.setMoveType(MoveType.Physical);
-					m.accuracy = Integer.parseInt(rs.getString("accuracy"));
-					m.pp = Integer.parseInt(rs.getString("pp"));
-					m.target = Target.fromString(rs.getString("target"));
-					m.priority = Integer.parseInt(rs.getString("priority"));
+						moveType = MoveType.Physical;
+					accuracy = Integer.parseInt(rs.getString("accuracy"));
+					pp = Integer.parseInt(rs.getString("pp"));
+					target = Target.fromString(rs.getString("target"));
+					priority = Integer.parseInt(rs.getString("priority"));
 					/*if(move.startsWith("Hidden Power")) //TODO: Hidden Power calculation.
-						{
+					{
 						moveType = hiddenPower.get(1).toString();
 						movePower = hiddenPower.get(0).toString();
-						}*/
-					System.out.println (
-						"Name: " + m.name +
-						", Shortname: " + m.shortname +
-						", Type: " + m.type +
-						", Power: " + m.power +
-						", Move Type: "+m.getMoveType() +
-						", Accuracy: " + m.accuracy +
-						", Target: " + m.target +
-						", Priority: " + m.priority +
-						", PP: " + m.pp);
+					}*/
 					++count;
 				}
 				rs.close ();
 				s.close ();
+				updateCache = true;
 				System.out.println (count + " rows were retrieved");
 			}
 			catch (SQLException e)
 			{
 				System.err.println ("Error message: " + e.getMessage ());
 				System.err.println ("Error number: " + e.getErrorCode ());
+				closeConnection();
 			}
 		}
-		closeConnection();
+		System.out.println (
+				"Name: " + name +
+				"\nShortname: " + shortname +
+				"\nType: " + type +
+				"\nPower: " + power +
+				"\nMove Type: "+moveType +
+				"\nAccuracy: " + accuracy +
+				"\nTarget: " + target +
+				"\nPriority: " + priority +
+				"\nPP: " + pp);
+		m.name = name;
+		m.shortname = shortname;
+		m.type = type;
+		m.setMoveType(moveType);
+		m.accuracy = accuracy;
+		m.target = target;
+		m.priority = priority;
+		m.pp = pp;
+		if(updateCache)
+		{
+			closeConnection();
+			moveCache.put(name, new Move(m));
+			moveCache.put(shortname, new Move(m));
+		}
 		return m;
 	}
 	
@@ -204,93 +286,123 @@ public class SQLHandler {
 	
 	public static Pokemon queryPokemon(Pokemon p)
 	{
-		openConnection();
 		String currentPokemon = p.getName();
-		System.out.println("Sending SQL query for Pokemon: " + currentPokemon);
-		try
+		String abilityZero = null;
+		String abilityOne = null;
+		String abilityDW = null;
+		Type[] typing = new Type[2];
+		int[] baseStats = new int[6];
+		String tier = null;
+		boolean updateCache = false;
+		if(pokeCache.containsKey(currentPokemon))
 		{
-			PreparedStatement s = conn.prepareStatement("SELECT pokemon.name, atk, spa, def, spd, hp, spe, pokemon.type0, pokemon.type1, ability0, ability1, abilityDW, tier FROM pokemon WHERE pokemon.name = ? ORDER BY name ASC");
-			s.setString(1, currentPokemon); // set the first '?' in the query to the currentPokemon
-			s.executeQuery(); // everything else is the same from here on
-			ResultSet rs = s.getResultSet();
-			int count = 0;
-			String[] types = new String[2];
-			Ability abilityZero = null;
-			Ability abilityOne = null;
-			Ability abilityDW = null;
-			while (rs.next ())
+			Pokemon cached = pokeCache.get(currentPokemon);
+			Ability zero = cached.getAbility(0);
+			Ability one = cached.getAbility(1);
+			Ability dw = cached.getAbility(2);
+			if(zero != null)
+				abilityZero = zero.getName();
+			if(one != null)
+				abilityOne = one.getName();
+			if(dw != null)
+				abilityDW = dw.getName();
+			typing = cached.getTypes();
+			baseStats = cached.getBaseStats();
+			tier = cached.getTier().name();
+		}
+		else
+		{
+			openConnection();
+			System.out.println("Sending SQL query for Pokemon: " + currentPokemon);
+			try
 			{
-				if(!rs.getString("name").toLowerCase().startsWith(currentPokemon.toLowerCase()))
-					System.err.println("Could not find find "+currentPokemon+" in SQL database!");
+				PreparedStatement s = conn.prepareStatement("SELECT pokemon.name, atk, spa, def, spd, hp, spe, pokemon.type0, pokemon.type1, ability0, ability1, abilityDW, tier FROM pokemon WHERE pokemon.name = ? ORDER BY name ASC");
+				s.setString(1, currentPokemon); // set the first '?' in the query to the currentPokemon
+				s.executeQuery(); // everything else is the same from here on
+				ResultSet rs = s.getResultSet();
+				int count = 0;
+				String[] types = new String[2];
 				String[] stats = new String[6];
-				stats[0] = rs.getString("hp");
-				stats[1] = rs.getString("atk");
-				stats[2] = rs.getString("def");
-				stats[3] = rs.getString("spa");
-				stats[4] = rs.getString("spd");
-				stats[5] = rs.getString("spe");
+				while (rs.next ())
+				{
+					if(!rs.getString("name").toLowerCase().startsWith(currentPokemon.toLowerCase()))
+						System.err.println("Could not find find "+currentPokemon+" in SQL database!");
+					stats[0] = rs.getString("hp");
+					stats[1] = rs.getString("atk");
+					stats[2] = rs.getString("def");
+					stats[3] = rs.getString("spa");
+					stats[4] = rs.getString("spd");
+					stats[5] = rs.getString("spe");
+					tier = rs.getString("tier");
+					types[0] = rs.getString("type0");
+					types[1] = rs.getString("type1");
+					abilityZero = rs.getString("ability0");
+					abilityOne = rs.getString("ability1");
+					abilityDW = rs.getString("abilityDW");
+					++count;
+				}
 				for(int i = 0; i < stats.length; i++)
 				{
-					if(p.getBaseStat(Stat.fromInt(i)) != 0)
-						continue;
 					if(stats[i] == null || stats[i].isEmpty())
 					{
 						System.err.println("Could not determine "+currentPokemon+"'s "+Stat.fromInt(i).toString()+" stat!");
 						continue;
 					}
-					p.setBaseStat(i, Integer.parseInt(stats[i]));
+					baseStats[i] = Integer.parseInt(stats[i]);
 				}
-				p.setTier(rs.getString("tier"));
-				types[0] = rs.getString("type0");
-				types[1] = rs.getString("type1");
-				abilityZero = p.setPossibleAbilties(rs.getString("ability0"), 0);
-				abilityOne = p.setPossibleAbilties(rs.getString("ability1"), 1);
-				abilityDW = p.setPossibleAbilties(rs.getString("abilityDW"), 2);
-				++count;
+				typing[0] = Type.fromSQL(types[0]); 
+				typing[1] = Type.fromSQL(types[1]);
+				if(typing[0] == Type.None && baseStats[Stat.Def.toInt()] == 0 && baseStats[Stat.SpD.toInt()] == 0)
+				{
+					System.err.println(currentPokemon+" is not in the SQL table!");
+					Battle.criticalErrors = Battle.criticalErrors + "\n"+currentPokemon+" is not in the SQL table!";
+				}
+				rs.close ();
+				s.close ();
+				updateCache = true;
+				System.out.println (count + " rows were retrieved");
 			}
-			p.setType(Type.fromSQL(types[0]), Type.fromSQL(types[1]));
-			if(p.getType(0) == Type.None && p.getBaseStat(Stat.Def) == 0 && p.getBaseStat(Stat.SpD) == 0)
+			catch (SQLException e)
 			{
-				System.err.println(currentPokemon+" is not in the SQL table!");
-				Battle.criticalErrors = Battle.criticalErrors + "\n"+currentPokemon+" is not in the SQL table!";
+				System.err.println ("Error message: " + e.getMessage ());
+				System.err.println ("Error number: " + e.getErrorCode ());
+				closeConnection();
 			}
-			System.out.println("Pokemon name: " + 			currentPokemon);
-			System.out.println("Pokemon type 1: " + 		p.getType(0));
-			System.out.println("Pokemon type 2: " + 		p.getType(1));
-			System.out.println("Tier: " + 					p.getTier());
-			if(abilityZero != null)
-				System.out.println("Ability 0: " +			abilityZero.getName());
-			if(abilityOne != null)
-				System.out.println("Ability 1: " +			abilityOne.getName());
-			if(abilityDW != null)
-				System.out.println("Ability DW: " +			abilityDW.getName());			
-			System.out.println("Base HP: " + 				p.getBaseStat(Stat.HP));
-			System.out.println("Base Attack: " + 			p.getBaseStat(Stat.Atk));
-			System.out.println("Base Defense: " + 			p.getBaseStat(Stat.Def));
-			System.out.println("Base Special Attack: " + 	p.getBaseStat(Stat.SpA));
-			System.out.println("Base Special Defense: " +	p.getBaseStat(Stat.SpD));
-			System.out.println("Base Speed: " +		 		p.getBaseStat(Stat.Spe));
-			rs.close ();
-			s.close ();
-			System.out.println (count + " rows were retrieved");
-		}
-		catch (SQLException e)
-		{
-			System.err.println ("Error message: " + e.getMessage ());
-			System.err.println ("Error number: " + e.getErrorCode ());
-		}
-		catch (NumberFormatException nfe)
-		{
-			System.err.println("Number Format Exception error: " + nfe.getMessage());
+			catch (NumberFormatException nfe)
+			{
+				System.err.println("Number Format Exception error: " + nfe.getMessage());
+			}
 		}
 		/*
-		 * TODO: Resistance lookup (old one was too Jaycode-y to decipher).
-		p.hyperEffective = quadrupleDamageLookup(p.types);
-		p.superEffective = doubleDamageLookup(p.types);
-		p.resistances = halfDamageLookup(p.types);
-		p.doubleResistances = quarterDamageLookup(p.types);
-		*/
-		closeConnection();
+		 * TODO: Immunity lookup.
+		 */
+		System.out.println("Pokemon name: " + 			currentPokemon);
+		System.out.println("Pokemon type 1: " + 		typing[0]);
+		System.out.println("Pokemon type 2: " + 		typing[1]);
+		System.out.println("Tier: " + 					tier);
+		if(abilityZero != null)
+			System.out.println("Ability 0: " +			abilityZero);
+		if(abilityOne != null)
+			System.out.println("Ability 1: " +			abilityOne);
+		if(abilityDW != null)
+			System.out.println("Ability DW: " +			abilityDW);			
+		System.out.println("Base HP: " + 				baseStats[Stat.HP.toInt()]);
+		System.out.println("Base Attack: " + 			baseStats[Stat.Atk.toInt()]);
+		System.out.println("Base Defense: " + 			baseStats[Stat.Def.toInt()]);
+		System.out.println("Base Special Attack: " + 	baseStats[Stat.SpA.toInt()]);
+		System.out.println("Base Special Defense: " +	baseStats[Stat.SpD.toInt()]);
+		System.out.println("Base Speed: " +		 		baseStats[Stat.Spe.toInt()]);
+		p.setType(typing[0], typing[1]);
+		p.setTier(tier);
+		p.setPossibleAbilties(abilityZero, 0);
+		p.setPossibleAbilties(abilityOne, 1);
+		p.setPossibleAbilties(abilityDW, 2);
+		p.setBaseStats(baseStats);
+		if(updateCache)
+		{
+			closeConnection();
+			pokeCache.put(currentPokemon, new Pokemon(p));
+		}
 		return p;
 	}
 	

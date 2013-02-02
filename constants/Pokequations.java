@@ -4,11 +4,14 @@
  */
 
 package geniusectsim.constants;
+import geniusectsim.abilities.Ability;
 import geniusectsim.battle.Battle;
+import geniusectsim.battle.Damage;
 import geniusectsim.battle.EntryHazard;
 import geniusectsim.battle.Team;
 import geniusectsim.battle.Type;
 import geniusectsim.battle.Weather;
+import geniusectsim.items.Item;
 import geniusectsim.moves.Move;
 import geniusectsim.moves.MoveType;
 import geniusectsim.pokemon.Nature;
@@ -36,6 +39,46 @@ public class Pokequations {
 		percentage.x = (int)Math.round(percentageX);
 		percentage.y = (int)Math.round(percentageY);
 		return percentage;
+	}
+	
+	private static double[] calculateModifiers(Battle battle, Pokemon attacker, Pokemon defender, Move move)
+	{
+		double multiplier = damageMultiplier(move.type, defender.getTypes());
+		return calculateModifiers(battle, attacker, defender, move, multiplier);
+	}
+	
+	private static double[] calculateModifiers(Battle battle, Pokemon attacker, Pokemon defender, Move move, double multiplier)
+	{
+		double modOne = 1;
+		Status attackStatus = attacker.getStatus();
+		if(attackStatus == Status.Burn)
+			modOne *= 0.5;
+		if(attacker.getTeam().hasReflect() && move.isPhysical() || attacker.getTeam().hasLightScreen() && move.isSpecial())
+			modOne *= 0.5;
+		modOne *= weatherModifier(battle,move.type);
+		Ability attackAbility = attacker.getAbility();
+		if(attackAbility != null && attackAbility.getName().toLowerCase().startsWith("flash fire"))
+			modOne *= attackAbility.getModifier();
+		double modTwo = 1;
+		Item attackItem = attacker.getItem();
+		if(attackItem != null && attackItem.name != null && attackItem.name.toLowerCase().startsWith("life orb"))
+			modTwo = 1.3;
+		double modThree = 1;
+		if(multiplier > 1)
+		{
+			Ability defenseAbility = defender.getAbility();
+			if(defenseAbility != null && (defenseAbility.getName().toLowerCase().startsWith("solid rock") || defenseAbility.getName().toLowerCase().startsWith("filter")))
+				modThree *= 0.75;
+			if(attackItem != null && attackItem.name != null && attackItem.name.toLowerCase().startsWith("expert belt"))
+				modThree *= 1.2;
+		}
+		if(multiplier < 1 && attackAbility != null && attackAbility.getName().toLowerCase().startsWith("tinted lens"))
+			modThree *= attackAbility.getModifier();
+		double[] modifiers = new double[3];
+		modifiers[0] = modOne;
+		modifiers[1] = modTwo;
+		modifiers[2] = modThree;
+		return modifiers;
 	}
 	
 	public static Point calculateDamage(Pokemon attacker, Move move, Pokemon defender)
@@ -76,26 +119,68 @@ public class Pokequations {
 			defenseStat = 100; //Means we could not look up this Pokemon's defense stat for some reason.
 		//TODO: Convert Hidden Power to correct type.
 		double multiplier = damageMultiplier(move.type, defender.getTypes());
-		double modifier = attacker.getAbilityModifier();
-		modifier *= weatherModifier(battle,move.type);
-		
-		return calculateDamage(level, attackStat, attackPower, defenseStat, stab, multiplier,modifier);
+		double[] mod = calculateModifiers(battle, attacker, defender, move, multiplier);
+		return calculateDamage(level, attackStat, attackPower, defenseStat, stab, multiplier,mod[0],mod[1],mod[2]);
 	}
 	
-	private static Point calculateDamage(int level, int attackStat, int attackPower, int defenseStat, double stab, double multiplier, double modifier)
+	/**
+	 * 
+	 * @param level
+	 * @param atk
+	 * @param bp
+	 * @param def
+	 * @param stab
+	 * @param multiplier
+	 * @param modOne (int): Mod1 = BRN × RL × TVT × SR × FF
+	 * where:
+	 * BRN
+	 * The Burn modifier
+	 * RL
+	 * The Reflect/Light Screen modifier
+	 * TVT
+	 * The 2v2 modifier
+	 * SR
+	 * The Sunny Day/Rain Dance modifier
+	 * FF
+	 * The Flash Fire modifier
+	 * @param modTwo (int): Mod2 =
+	 * 1.3 if the user is holding the item Life Orb.
+	 * 1, 1.1, 1.2, 1.3, ..., 2 if the user is holding the item Metronome and has used the same move once, twice, ... etc. consecutively.
+	 * 1.5 if the user is attacking with the move Me First.
+	 * 1 otherwise.
+	 * @param modThree (int): Mod3 = SRF × EB × TL × TRB
+	 * where:
+	 * SRF
+	 * The Solid Rock/Filter modifier
+	 * EB
+	 * The Expert Belt modifier
+	 * TL
+	 * The Tinted Lens modifier
+	 * TRB
+	 * The type-resisting Berry modifier
+	 * SRF is 0.75 if the foe's ability is Solid Rock or Filter and the move used is super effective against it, and 1 otherwise.
+	 * EB is 1.2 if the user is holding the item Expert Belt and the move used is super effective against the foe, and 1 otherwise.
+	 * TL is 2 if the user's ability is Tinted Lens and the move used is not very effective against the foe, and 1 otherwise.
+	 * TRB is:
+	 * 0.5 if the foe is holding one of the type resisting Berries and the move used is super effective and of the same type as the type that the Berry knocks down.
+	 * 0.5 if the foe is holding Chilan Berry and the move used is Normal-type.
+	 * 1 otherwise.
+	 * @return
+	 */
+	private static Point calculateDamage(int level, int atk, int bp, int def, double stab, double multiplier, double modOne, double modTwo, double modThree)
 	{
-		if(defenseStat == 0)
+		if(def == 0)
 			return new Point(1,1);
 		//Returns damage dealt as a point(minValue, maxValue).
 		
 		Point p = new Point();
-		p.y = (int)Math.floor(((((2 * level / 5 + 2) * attackStat * (attackPower * modifier) / defenseStat) / 50) + 2) * stab * multiplier);
+		p.y = (int)Math.floor((((((((level * 2 / 5) + 2) * bp * atk / 50) / def) * modOne) + 2) * 1 * modTwo * 100 / 100) * stab * multiplier * modThree);
 		p.x = (int)Math.ceil(p.y * 0.85);
 		//System.out.println("Max damage is "+p.y);
 		return p;
 	}
 	
-	public static double weatherModifier(Battle battle, Type type)
+	private static double weatherModifier(Battle battle, Type type)
 	{
 		Weather weather = battle.getWeather();
 		if(weather == Weather.Sun)
@@ -115,42 +200,48 @@ public class Pokequations {
 		return 1;
 	}
 	
-	public static int calculateAtkStat(Pokemon attacker, Move move, Pokemon defender, int percentageLost)
+	public static int calculateAtkStat(Damage damage)
 	{
-		int attackPower = move.power;
-		int level = attacker.getLevel();
-		int defenseStat;
-		if(move.getMoveType() == MoveType.Special)
-			defenseStat = defender.getBoostedStat(Stat.SpD);
-		else
-			defenseStat = defender.getBoostedStat(Stat.Def);
+		Pokemon attacker = damage.attacker;
+		Pokemon defender = damage.defender;
+		Move move = damage.attack;
+		int damageAmount = damage.getDamageAmount();
+		damageAmount = defender.percentToHP(damageAmount);
+		Battle battle = attacker.getTeam().getBattle();
+		Type[] types = attacker.getTypes();
 		double multiplier = damageMultiplier(move.type, defender.getTypes());
-		double bonus = 1;
-		if(attacker.getType(0) == move.type || attacker.getType(1) == move.type)
-			bonus = attacker.getSTAB();
-		int damage = calculateHPDamage(percentageLost,defender.getBoostedStat(Stat.HP));
-		
-		return (int)Math.floor(50 * damage * defenseStat / (bonus * multiplier * attackPower * (2 * level / 5 + 2)) - 100 * defenseStat / (attackPower * (2 * level / 5 + 2)));
+		double stab = 1;
+		if(move.type == types[0] || move.type == types[1])
+			stab = 1.5;
+		double[] mods = calculateModifiers(battle, attacker, defender, move);
+		return calculateAtkStat(damageAmount, attacker.getLevel(), move.power, defender.getBoostedStat(Stat.Def), stab, multiplier, mods[0], mods[1], mods[2]);
 	}
 	
-	public static int calculateDefStat(Pokemon attacker, Move move, Pokemon defender, int percentageLost)
+	private static int calculateAtkStat(int damage, int level, int bp, int def, double stab, double multiplier, double modOne, double modTwo, double modThree)
 	{
-		/*int attackPower = move.power;
-		int level = attacker.level;
-		int defenseStat;
-		if(move.special)
-			defenseStat = defender.stats[4];
-		else
-			defenseStat = defender.stats[2];
-		double multiplier = damageMultiplier(move.type, defender.types);
-		double bonus = 1;
-		if(attacker.types[0] == move.type || attacker.types[1] == move.type)
-			bonus = 1.5;
-		int damage = calculateHPDamage(percentageLost,defender.stats[0]);
-		return (int)Math.floor(50 * damage * defenseStat / (bonus * multiplier * attackPower * (2 * level / 5 + 2)) - 100 * defenseStat / (attackPower * (2 * level / 5 + 2)));
-		*/
-		//TODO: Work out what to do about this.
-		return 0;
+		return (int)Math.ceil(((125*def*damage)-(250*def*multiplier*stab*modTwo*modThree))/((level*multiplier*bp*stab*modOne*modTwo*modThree)+(5*multiplier*bp*stab*modOne*modTwo*modThree)));
+	}
+	
+	public static int calculateDefStat(Damage damage)
+	{
+		Pokemon attacker = damage.attacker;
+		Pokemon defender = damage.defender;
+		Move move = damage.attack;
+		int damageAmount = damage.getDamageAmount();
+		damageAmount = defender.percentToHP(damageAmount);
+		Battle battle = attacker.getTeam().getBattle();
+		Type[] types = attacker.getTypes();
+		double multiplier = damageMultiplier(move.type, defender.getTypes());
+		double stab = 1;
+		if(move.type == types[0] || move.type == types[1])
+			stab = 1.5;
+		double[] mods = calculateModifiers(battle, attacker, defender, move);
+		return calculateDefStat(damageAmount, attacker.getLevel(), move.power, attacker.getBoostedStat(Stat.Atk), stab, multiplier, mods[0], mods[1], mods[2]);
+	}
+	
+	private static int calculateDefStat(int damage, int level, int bp, int atk, double stab, double multiplier, double modOne, double modTwo, double modThree)
+	{
+		return (int)Math.ceil((atk*(level+5)*multiplier*bp*stab*modOne*modTwo*modThree)/(125*(damage-(2*multiplier*stab*modTwo*modThree))));
 	}
 	
 	public static int calculateHPDamage(int percentage, int hp)
@@ -188,12 +279,12 @@ public class Pokequations {
 		return calculateStat(type, pokemon.getNature(), pokemon.getBaseStat(type), pokemon.getIVs(type),pokemon.getEVs(type), pokemon.getLevel());
 	}
 	
-	public static int calculateStat(Stat type, Nature nature, int base, int iv, int ev, int level)
+	private static int calculateStat(Stat type, Nature nature, int base, int iv, int ev, int level)
 	{
 		return calculateStat(type,nature.multiplier(type),base,iv,ev,level);
 	}
 	
-	public static int calculateStat(Stat type, double natureValue, int base, int iv, int ev, int level)
+	private static int calculateStat(Stat type, double natureValue, int base, int iv, int ev, int level)
 	{
 		//Returns any non-HP stat as an int.
 		if(type == Stat.HP)

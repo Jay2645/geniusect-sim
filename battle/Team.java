@@ -72,8 +72,8 @@ public class Team {
 	private String teamName;
 	private String userName = "";
 	private boolean hasInitialized = false;
-	private double teamDefModifier = 1;
-	private double teamSpDModifier = 1;
+	private boolean reflect = false;
+	private boolean lightScreen = false;
 	private static Battle battle;
 	private EntryHazard stealthRocks = EntryHazard.StealthRock;
 	private EntryHazard spikes = EntryHazard.Spikes;
@@ -81,7 +81,11 @@ public class Team {
 	
 	public Pokemon addPokemon(String s)
 	{
-		return addPokemon(new Pokemon(s,"",this));
+		Pokemon found = getPokemon(s);
+		if(found == null)
+			return addPokemon(new Pokemon(s,"",this));
+		else
+			return found;
 	}
 	public Pokemon addPokemon(Pokemon p)
 	{
@@ -112,7 +116,8 @@ public class Team {
 	
 	public void updateEnemy(Pokemon p)
 	{
-		active.changeEnemy(p);
+		if(active != null)
+			active.changeEnemy(p);
 	}
 	
 	/**
@@ -147,7 +152,7 @@ public class Team {
 		{
 			if(team[i] == null)
 				continue;
-			if(team[i].nameIs(name))
+			if(team[i].nameIs(name) || team[i].nicknameIs(name))
 			{
 				p = team[i];
 				break;
@@ -316,8 +321,8 @@ public class Team {
 		teamName = clone.teamName;
 		userName = clone.userName;
 		hasInitialized = clone.hasInitialized;
-		teamDefModifier = clone.teamDefModifier;
-		teamSpDModifier = clone.teamSpDModifier;
+		reflect = clone.reflect;
+		lightScreen = clone.lightScreen;
 	}
 
 	/**
@@ -409,5 +414,21 @@ public class Team {
 	public String getTeamName() 
 	{
 		return teamName;
+	}
+
+	/**
+	 * @return
+	 */
+	public boolean hasReflect() 
+	{
+		return reflect;
+	}
+
+	/**
+	 * @return
+	 */
+	public boolean hasLightScreen() 
+	{
+		return lightScreen;
 	}
 }

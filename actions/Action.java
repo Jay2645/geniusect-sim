@@ -8,11 +8,6 @@ package geniusectsim.actions;
 import geniusectsim.battle.Battle;
 import geniusectsim.bridge.Simulator;
 
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-
 public class Action 
 {
 	public String name;

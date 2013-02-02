@@ -111,6 +111,8 @@ public class Ability {
 	{
 		if(ability != null)
 			ability.onSendOut();
+		else
+			System.out.println(user.getName()+"'s ability is null.");
 	}
 	
 	public void onFaint(Pokemon attacker, Move move)
@@ -1974,4 +1976,12 @@ public class Ability {
 			rating = 4,
 		}
 	};*/
+
+	/**
+	 * @return
+	 */
+	public double getScore() 
+	{
+		return rating;
+	}
 }

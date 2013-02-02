@@ -15,7 +15,11 @@ public class AbilityDrought extends Ability
 	}
 	public void onSendOut()
 	{
+		if(!user.isAlive())
+			return;
 		System.out.println("Changing weather.");
-		battle.setWeather(Weather.Sun);
+		Weather sunshine = Weather.Sun;
+		sunshine.setDuration(-1);
+		battle.setWeather(sunshine);
 	}
 }

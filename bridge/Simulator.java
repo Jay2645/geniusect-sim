@@ -34,6 +34,26 @@ public class Simulator
 		isLocal = local;
 	}
 	
+	/**
+	 * @param usImportable
+	 * @return
+	 */
+	public static Battle onNewBattle(String usImportable) 
+	{
+		battle = new Battle();
+		battle.setUsImportable(usImportable);
+		if(isLocal)
+		{
+			battle.setupTeam(0);
+			battle.setupTeam(1);
+		}
+		else
+		{
+			battle = ShowdownHandler.onNewBattle(battle);
+		}
+		return battle;
+	}
+	
 	public static Battle onNewBattle()
 	{
 		battle = new Battle();
@@ -72,14 +92,6 @@ public class Simulator
 			return new Change();
 		}
 		return ShowdownHandler.battleStartAction();
-	}
-	
-	public static void updateLastTurn()
-	{
-		if(!isLocal)
-		{
-			ShowdownHandler.updateLastTurn();
-		}
 	}
 	
 	public static void print(String text)
@@ -232,6 +244,7 @@ public class Simulator
 			playerPoke.onDie();
 		if(enemyHealth <= 0)
 			enemyPoke.onDie();
+		b.setWeather(b.getWeather().onNewTurn());
 	}
 	
 	private static int doAction(Action action)
@@ -246,7 +259,7 @@ public class Simulator
 				if(!attacker.isAlive()) //We can only attack if we're alive.
 					return 0;
 				Damage damageDone = new Damage(attack.move, attacker, defender);
-				int damage = damageDone.applyDamage();
+				int damage = defender.onNewAttack(damageDone);
 				if(defender.isAlive())
 					System.err.println("Damage done: "+damage+"%");
 				return damage;
@@ -263,7 +276,7 @@ public class Simulator
 				Change change = (Change)action;
 				System.out.println("Changing to "+change.switchTo.getName());
 				Team changeTo = change.switchTo.getTeam();
-				changeTo.setActive(change.switchTo);
+				changeTo.changePokemon(change.switchTo);
 			}
 			else
 			{

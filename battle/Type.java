@@ -11,13 +11,11 @@ public enum Type {
 	Grass("Grass", 4, 11), Dark("Dark", 15, 16), Psychic("Psychic", 10, 13), Steel("Steel", 16, 8), Ground("Ground", 8, 4), 
 	Rock("Rock", 12, 5), Dragon("Dragon", 14, 15), Ice("Ice", 5, 14), Bug("Bug", 11, 6), Flying("Flying", 9, 2), Poison("Poison", 7, 3), None("None", -1, -1);
 	private String name;
-	private int sqlID;
 	private int gameID;
 	
 	private Type(String s, int sql, int g)
 	{
 		name = s;
-		sqlID = sql;
 		gameID = g;
 	}
 	

@@ -22,22 +22,37 @@ public class Damage {
 		this.attacker = attacker;
 		attack = move;
 	}
+	public Damage(Move move, Pokemon attacker, Pokemon victim, int damageDealt)
+	{
+		attack = move;
+		this.attacker = attacker;
+		defender = victim;
+		damage = damageDealt;
+	}
 	public Move attack = null;
 	public Pokemon attacker = null;
 	public Pokemon defender = null;
+	int damage = 0;
 	
 	public int applyDamage()
 	{
-		if(attacker == null)
+		if(attacker == null || defender == null)
 			return 0;
-		int damage = attack.useMove(false, attacker, defender);
+		if(damage == 0)
+			damage = attack.useMove(false, attacker, defender);
 		if(damage < 0)
-		{
 			return -attacker.restoreHP(damage);
-		}
-		if(defender == null || damage == 0)
+		if(damage == 0)
 			return 0;
 		defender.damage(damage);
+		return damage;
+	}
+	/**
+	 * Gets the amount of damage this class applied to the target.
+	 * @return (int): The damage amount.
+	 */
+	public int getDamageAmount() 
+	{
 		return damage;
 	}
 }
