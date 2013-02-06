@@ -25,6 +25,7 @@ public enum Nature {
 	{
 		mod[0] = boost;
 		mod[1] = reduce;
+		this.name = name;
 	}
 	
 	public Stat[] multiplier()
@@ -62,14 +63,22 @@ public enum Nature {
 	public String toString()
 	{
 		if(name == null)
+		{
+			System.err.println("A nature's name was null!");
 			return "Hardy";
+		}
 		return name;
 	}
 	
 	public static Nature fromString(String n)
 	{
 		//I didn't want to have to write 50000 if statements because jaycode but oh well.
-			if(n == null || n.toLowerCase().startsWith("har"))
+		if(n == null)
+		{
+			System.err.println("The nature was null!");
+			return Nature.Hardy;
+		}
+			if(n.toLowerCase().startsWith("har"))
 				return Nature.Hardy;
 			else if(n.toLowerCase().startsWith("d"))
 				return Nature.Docile;
@@ -149,6 +158,8 @@ public enum Nature {
 		Stat reduce = null;
 		for(Move move : moveset)
 		{
+			if(move == null)
+				continue;
 			MoveType type = move.getMoveType();
 			if(type == MoveType.Special)
 			{

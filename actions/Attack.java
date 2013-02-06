@@ -6,7 +6,6 @@
 package geniusectsim.actions;
 
 import geniusectsim.battle.Battle;
-import geniusectsim.bridge.Simulator;
 import geniusectsim.constants.Pokequations;
 import geniusectsim.moves.Move;
 import geniusectsim.pokemon.Pokemon;
@@ -18,8 +17,6 @@ public class Attack extends Action {
 	
 	public Pokemon attacker;
 	public Pokemon defender;
-	
-	private Action toDo;
 	
 	public void setMove(Move m, Pokemon attack, Pokemon defend, Battle b)
 	{
@@ -60,22 +57,6 @@ public class Attack extends Action {
 		else
 			move = m;
 		name = move.name;
-	}
-	
-	public Action deploy()
-	{
-		//Send next Attack to Showdown.
-		if(sent)
-			return toDo;
-		System.err.println(attacker.getName()+" used "+move.name+"!");
-		sent = true;
-		if(!sayOnSend.equals(""))
-		{
-			Simulator.print(sayOnSend);
-			sayOnSend = "";
-		}
-		toDo = Simulator.newTurn(this);
-		return toDo;
 	}
 	
 	public void defenderSwap(Pokemon newDefend)

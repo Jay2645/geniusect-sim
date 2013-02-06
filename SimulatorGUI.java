@@ -143,6 +143,10 @@ public class SimulatorGUI extends JApplet implements ActionListener
 	
 	private void toggleShowdown()
 	{
+		if(showdownActive)
+			System.out.println("Disabling Showdown.");
+		else
+			System.out.println("Launching Showdown");
 		Simulator.isLocal(showdownActive);
 		showdownActive = !showdownActive;	//Yes, after we do the above.
 		startBattle();
@@ -159,8 +163,9 @@ public class SimulatorGUI extends JApplet implements ActionListener
 		}
 		catch(Exception e)
 		{
-			toggleShowdown();
 			System.err.println(e.getMessage());
+			e.printStackTrace();
+			toggleShowdown();
 		}
 		battleStart = false;
 		usImportable = "Team Name: "+ battle.getTeam(0, false).getTeamName()+"\n"+battle.getTeam(0, false).exportImportable();

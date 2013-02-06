@@ -1,5 +1,7 @@
 package geniusectsim.bridge;
 
+import java.util.ArrayList;
+
 import geniusectsim.abilities.Ability;
 import geniusectsim.actions.Action;
 import geniusectsim.actions.Attack;
@@ -94,6 +96,10 @@ public class Simulator
 		return ShowdownHandler.battleStartAction();
 	}
 	
+	/**
+	 * Prints a line of text to the battle log and the console.
+	 * @param text - The text to print.
+	 */
 	public static void print(String text)
 	{
 		if(isLocal)
@@ -118,6 +124,7 @@ public class Simulator
 	
 	public static Action newTurn(Action a)
 	{
+		a.sendMessage();
 		if(isLocal)
 		{
 			if(userAction == null)
@@ -380,5 +387,62 @@ public class Simulator
 	{
 		if(!isLocal)
 			ShowdownHandler.teamFromShowdown(team);
+	}
+
+	/**
+	 * Returns TRUE if the specified Pokemon is alive, else FALSE.
+	 * @param pokemon (Pokemon): The Pokemon to check.
+	 * @return TRUE if the specified Pokemon is alive, else FALSE.
+	 */
+	public static boolean isAlive(Pokemon pokemon) 
+	{
+		if(isLocal)
+			return pokemon.isAlive();
+		else
+			return ShowdownHandler.isAlive(pokemon);
+	}
+
+	/**
+	 * Returns an array of Pokemon we can switch to.
+	 * @return (Pokemon[]) All Pokemon we can switch to.
+	 */
+	public static Pokemon[] getSwitchableTeam() 
+	{
+		if(isLocal)
+		{
+			Pokemon[] team = battle.getTeam(0, false).getPokemonTeam();
+			ArrayList<Pokemon> aliveList = new ArrayList<Pokemon>();
+			for(Pokemon poke : team)
+			{
+				if(poke == null)
+					continue;
+				if(poke.isAlive())
+					aliveList.add(poke);
+			}
+			return aliveList.toArray(team);
+		}
+		else
+		{
+			try
+			{
+				return ShowdownHandler.getSwitchableTeam();
+			}
+			catch(Exception e)
+			{
+				System.err.println(e.getMessage());
+				e.printStackTrace();
+				isLocal = true;
+				return getSwitchableTeam();
+			}
+		}
+	}
+
+	/**
+	 * If send is equal to TRUE, then all actions are sent to Showdown. If it is equal to FALSE, no actions are sent to Showdown.
+	 * @param send (Boolean): TRUE if actions should be sent to Showdown, else FALSE.
+	 */
+	public static void toggleSend(boolean send) 
+	{
+		isLocal = !send;
 	}
 }

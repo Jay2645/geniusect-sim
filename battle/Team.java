@@ -431,4 +431,28 @@ public class Team {
 	{
 		return lightScreen;
 	}
+
+	/**
+	 * @param switchPokes
+	 */
+	public void setSwitchableTeam(Pokemon[] switchPokes) 
+	{
+		for(Pokemon poke : team)
+		{
+			boolean found = false;
+			for(Pokemon alive : switchPokes)
+			{
+				if(poke.nameIs(alive.getName()))
+				{
+					found = true;
+					if(!poke.isAlive())
+						poke.setHP(1, 100);
+					break;
+				}
+			}
+			if(found)
+				continue;
+			poke.setHP(0,100);
+		}
+	}
 }

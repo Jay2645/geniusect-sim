@@ -43,7 +43,7 @@ public class Pokequations {
 	
 	private static double[] calculateModifiers(Battle battle, Pokemon attacker, Pokemon defender, Move move)
 	{
-		double multiplier = damageMultiplier(move.type, defender.getTypes());
+		double multiplier = damageMultiplier(move.getType(), defender.getTypes());
 		return calculateModifiers(battle, attacker, defender, move, multiplier);
 	}
 	
@@ -55,7 +55,7 @@ public class Pokequations {
 			modOne *= 0.5;
 		if(attacker.getTeam().hasReflect() && move.isPhysical() || attacker.getTeam().hasLightScreen() && move.isSpecial())
 			modOne *= 0.5;
-		modOne *= weatherModifier(battle,move.type);
+		modOne *= weatherModifier(battle,move.getType());
 		Ability attackAbility = attacker.getAbility();
 		if(attackAbility != null && attackAbility.getName().toLowerCase().startsWith("flash fire"))
 			modOne *= attackAbility.getModifier();
@@ -92,11 +92,11 @@ public class Pokequations {
 		Type[] immunities = defender.getImmunities();
 		for(int i = 0; i < immunities.length; i++)
 		{
-			if(immunities[i] == move.type)
+			if(immunities[i] == move.getType())
 				return new Point(0,0);
 		}
 		double stab = 1;
-		if(attacker.getType(0) == move.type || attacker.getType(1) == move.type)
+		if(attacker.getType(0) == move.getType() || attacker.getType(1) == move.getType())
 			stab = attacker.getSTAB();
 		int attackPower = move.power;
 		int attackStat;
@@ -117,8 +117,7 @@ public class Pokequations {
 		}
 		if(defender.getBoostedStat(Stat.Def) == 0)
 			defenseStat = 100; //Means we could not look up this Pokemon's defense stat for some reason.
-		//TODO: Convert Hidden Power to correct type.
-		double multiplier = damageMultiplier(move.type, defender.getTypes());
+		double multiplier = damageMultiplier(move.getType(), defender.getTypes());
 		double[] mod = calculateModifiers(battle, attacker, defender, move, multiplier);
 		return calculateDamage(level, attackStat, attackPower, defenseStat, stab, multiplier,mod[0],mod[1],mod[2]);
 	}
@@ -209,9 +208,9 @@ public class Pokequations {
 		damageAmount = defender.percentToHP(damageAmount);
 		Battle battle = attacker.getTeam().getBattle();
 		Type[] types = attacker.getTypes();
-		double multiplier = damageMultiplier(move.type, defender.getTypes());
+		double multiplier = damageMultiplier(move.getType(), defender.getTypes());
 		double stab = 1;
-		if(move.type == types[0] || move.type == types[1])
+		if(move.getType() == types[0] || move.getType() == types[1])
 			stab = 1.5;
 		double[] mods = calculateModifiers(battle, attacker, defender, move);
 		return calculateAtkStat(damageAmount, attacker.getLevel(), move.power, defender.getBoostedStat(Stat.Def), stab, multiplier, mods[0], mods[1], mods[2]);
@@ -219,7 +218,10 @@ public class Pokequations {
 	
 	private static int calculateAtkStat(int damage, int level, int bp, int def, double stab, double multiplier, double modOne, double modTwo, double modThree)
 	{
-		return (int)Math.ceil(((125*def*damage)-(250*def*multiplier*stab*modTwo*modThree))/((level*multiplier*bp*stab*modOne*modTwo*modThree)+(5*multiplier*bp*stab*modOne*modTwo*modThree)));
+		System.out.println("Calculatining minimum Atk stat for damage "+damage);
+		int result = (int)Math.ceil(((125*def*damage)-(250*def*multiplier*stab*modTwo*modThree))/((level*multiplier*bp*stab*modOne*modTwo*modThree)+(5*multiplier*bp*stab*modOne*modTwo*modThree)));
+		System.out.println("Result: "+result);
+		return result;
 	}
 	
 	public static int calculateDefStat(Damage damage)
@@ -231,9 +233,9 @@ public class Pokequations {
 		damageAmount = defender.percentToHP(damageAmount);
 		Battle battle = attacker.getTeam().getBattle();
 		Type[] types = attacker.getTypes();
-		double multiplier = damageMultiplier(move.type, defender.getTypes());
+		double multiplier = damageMultiplier(move.getType(), defender.getTypes());
 		double stab = 1;
-		if(move.type == types[0] || move.type == types[1])
+		if(move.getType() == types[0] || move.getType() == types[1])
 			stab = 1.5;
 		double[] mods = calculateModifiers(battle, attacker, defender, move);
 		return calculateDefStat(damageAmount, attacker.getLevel(), move.power, attacker.getBoostedStat(Stat.Atk), stab, multiplier, mods[0], mods[1], mods[2]);
@@ -241,7 +243,10 @@ public class Pokequations {
 	
 	private static int calculateDefStat(int damage, int level, int bp, int atk, double stab, double multiplier, double modOne, double modTwo, double modThree)
 	{
-		return (int)Math.ceil((atk*(level+5)*multiplier*bp*stab*modOne*modTwo*modThree)/(125*(damage-(2*multiplier*stab*modTwo*modThree))));
+		System.out.println("Calculatining minimum Def stat for damage "+damage);
+		int result = (int)Math.ceil((atk*(level+5)*multiplier*bp*stab*modOne*modTwo*modThree)/(125*(damage-(2*multiplier*stab*modTwo*modThree))));
+		System.out.println("Result: "+result);
+		return result;
 	}
 	
 	public static int calculateHPDamage(int percentage, int hp)

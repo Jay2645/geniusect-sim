@@ -146,6 +146,8 @@ public class Pokemon {
 	public void onDie()
 	{
 		//Called when the Pokemon dies.
+		Throwable t = new Throwable();
+		t.printStackTrace();
 		hpPercent = 0;
 		if(ability != null)
 			ability.onFaint(enemy,enemy.lastMoveUsed);
@@ -180,7 +182,7 @@ public class Pokemon {
 		return damageDoneLastTurn;
 	}
 	
-	public void onNewTurn(String n, int damageDone, boolean crit)
+	public Move onNewTurn(String n, int damageDone, boolean crit)
 	{
 		//Called when this Pokemon uses a move.
 		//Keeps track of what moves THIS Pokemon has done (if unknown) and what damage they did to the enemy.
@@ -188,12 +190,11 @@ public class Pokemon {
 			enemy = enemyTeam.getActive(); //So we can properly simulate the right team.
 		Move moveUsed = addMove(n);
 		if(moveUsed != null)
-		{
 			moveUsed.onMoveUsed(enemy, damageDone, crit);
-		}
 		if(ability != null)
 			ability.onNewTurn();
 		status.onNewTurn();
+		return moveUsed;
 	}
 	
 	public int restoreHP(int restorePercent)
@@ -236,7 +237,7 @@ public class Pokemon {
 	
 	public int checkHP()
 	{
-		if(hpPercent <= 0 && alive)
+		if(hpPercent <= 0 && alive && !Simulator.isAlive(this))
 		{
 			onDie();
 		}
@@ -332,6 +333,20 @@ public class Pokemon {
 			if(moveNames[i] == null || moveNames[i].toLowerCase().contains("struggle"))
 				continue;
 			moveset[i] = new Move(moveNames[i], this, shortname);
+			if(moveNames[i].startsWith("hiddenpower") || moveNames[i].toLowerCase().startsWith("hidden power"))
+			{
+				moveset[i] = new HiddenPower(moveset[i]);
+				String type = "";
+				if(shortname)
+				{
+					type = moveNames[i].substring(12);
+				}
+				else
+				{
+					type = moveNames[i].substring(13);
+				}
+				((HiddenPower)moveset[i]).setType(Type.fromString(type));
+			}
 		}
 		return moveset;
 	}
@@ -374,13 +389,9 @@ public class Pokemon {
 				if(moveName.toLowerCase().startsWith("hidden power"))
 				{
 					HiddenPower hp = new HiddenPower(moveset[i]); 
-					if(moveset[i].type == null)
+					if(moveset[i].getType() != null)
 					{
-						//TODO: Calculate hidden power type.
-					}
-					else
-					{
-						hp.setType(moveset[i].type);
+						hp.setType(moveset[i].getType());
 					}
 					moveset[i] = hp;
 				}
@@ -860,7 +871,7 @@ public class Pokemon {
 		{
 			if(clone.moveset[i] == null)
 				continue;
-			moveset[i] = new Move(clone.moveset[i]);
+			moveset[i] = Move.clone(clone.moveset[i]);
 		}
 		
 		base = clone.base;
@@ -921,6 +932,7 @@ public class Pokemon {
 				{
 					found.name = tempname.substring(0, nameM.start(1) - 2);
 				}
+				found.nickName = tempname.substring(0, nameM.start(1) - 2);
 			}
 			else
 			{
@@ -929,8 +941,11 @@ public class Pokemon {
 			
 			found.item = new Item(importable.substring(m.start(2), m.end(2)));
 			found.setAbility(importable.substring(m.start(3), m.end(3)));
-			found.nature = Nature.fromString(importable.substring(m.start(4), m.end(4)));
-							
+			String nature = importable.substring(m.start(4), m.end(4));
+			System.err.println(nature);
+			found.nature = Nature.fromString(nature);
+			System.err.println(found.nature);				
+			
 			System.out.println("name: " + found.name);
 			System.out.println("item: " + found.item.name);
 			System.out.println("trait: " + found.ability.getName());
@@ -1209,16 +1224,15 @@ public class Pokemon {
 			importable = importable + "\n";
 		if(nature != null)
 			importable = importable + nature.toString() + " Nature \n";
-		count = 0;
 		for(int i = 0; i < 4; i++)
 		{
 			if(moveset[i] == null)
 				continue;
-			importable = importable + "- "+ moveset[i].name +"\n";
-			count++;
+			if(moveset[i].name.toLowerCase().startsWith("hidden power"))
+				importable = importable + "- Hidden Power ["+moveset[i].getType().toString()+"]\n";
+			else
+				importable = importable + "- "+ moveset[i].name +"\n";
 		}
-		if(count > 0)
-			importable = importable + "\n";
 		return importable;
 	}
 
@@ -1272,9 +1286,10 @@ public class Pokemon {
 	 */
 	public void setMinSpeed(int boostedStat) 
 	{
+		System.out.println("Finding minimum Spe stat. Our current stat is "+boostedStats[Stat.Spe.toInt()]+"; it must be larger than "+boostedStat);
 		int[] originalEVs = evs;
 		int originalLeft = evsLeft;
-		while(boostedStats[Stat.Spe.toInt()] > boostedStat && evsLeft > 3)
+		while(boostedStats[Stat.Spe.toInt()] < boostedStat && evsLeft > 3 && evs[Stat.Spe.toInt()] < 255)
 		{
 			evs[Stat.Spe.toInt()] += 4;
 			evsLeft -= 4;
@@ -1282,7 +1297,7 @@ public class Pokemon {
 			boostedStats[Stat.Spe.toInt()] = Pokequations.statBoost(boosts[Stat.Spe.toInt()],stats[Stat.Spe.toInt()]);
 			System.out.println("Finding min speed. Current: "+boostedStats[Stat.Spe.toInt()]+"; must be larger than "+boostedStat);
 		}
-		if(boostedStats[Stat.Spe.toInt()] > boostedStat && evsLeft <= 0)
+		if(boostedStats[Stat.Spe.toInt()] < boostedStat && (evsLeft <= 0 || evs[Stat.Spe.toInt()] >= 252))
 		{
 			Nature originalNature = nature;
 			if(nature == Nature.Hardy)
@@ -1375,5 +1390,129 @@ public class Pokemon {
 	public void setNickname(String string) 
 	{
 		nickName = string;
+	}
+
+	/**
+	 * Finds the minimum amount of EVs required to achieve a minimum attack stat.
+	 * @param targetAtkStat
+	 */
+	public void setMinAttack(int targetAtkStat) 
+	{
+		System.out.println("Finding minimum Atk stat. Our current stat is "+boostedStats[Stat.Atk.toInt()]+"; it must be larger than "+targetAtkStat);
+		int[] originalEVs = evs;
+		int originalLeft = evsLeft;
+		while(boostedStats[Stat.Atk.toInt()] < targetAtkStat && evsLeft > 3 && evs[Stat.Atk.toInt()] < 255)
+		{
+			evs[Stat.Atk.toInt()] += 4;
+			evsLeft -= 4;
+			stats[Stat.Atk.toInt()] = Pokequations.calculateStat(Stat.Atk, this);
+			boostedStats[Stat.Atk.toInt()] = Pokequations.statBoost(boosts[Stat.Atk.toInt()],stats[Stat.Atk.toInt()]);
+			System.out.println("Finding min Atk. Current: "+boostedStats[Stat.Atk.toInt()]+"; must be larger than "+targetAtkStat);
+		}
+		if(boostedStats[Stat.Atk.toInt()] < targetAtkStat && (evsLeft <= 0 || evs[Stat.Atk.toInt()] >= 252))
+		{
+			Nature originalNature = nature;
+			if(nature == Nature.Hardy)
+			{
+				nature = Nature.findPositiveNature(Stat.Atk, moveset);
+				//The results were skewed, so this EV spread might be inaccurate and we need to try again.
+				evs = originalEVs;
+				evsLeft = originalLeft;
+				stats[Stat.Atk.toInt()] = Pokequations.calculateStat(Stat.Atk, this);
+				boostedStats[Stat.Atk.toInt()] = Pokequations.statBoost(boosts[Stat.Atk.toInt()],stats[Stat.Atk.toInt()]);
+				setMinAttack(targetAtkStat);
+			}
+			if(item == null)
+			{
+				int count = 0;
+				for(int i = 0; i < 4; i++)
+				{
+					if(movesUsedSinceDeploy[i] == null)
+						continue;
+					else
+						count++;
+				}
+				if(count == 1)
+				{
+					item = new Item("Choice Band");
+					//The results were skewed, so this EV spread might be inaccurate and we need to try again.
+					evs = originalEVs;
+					evsLeft = originalLeft;
+					nature = originalNature;
+					stats[Stat.Atk.toInt()] = Pokequations.calculateStat(Stat.Atk, this);
+					boostedStats[Stat.Atk.toInt()] = Pokequations.statBoost(boosts[Stat.Atk.toInt()],stats[Stat.Atk.toInt()]);
+					setMinAttack(targetAtkStat);
+				}
+			}
+			else
+			{
+				stats[Stat.Atk.toInt()] = Pokequations.calculateStat(Stat.Atk, this);
+				boostedStats[Stat.Atk.toInt()] = Pokequations.statBoost(boosts[Stat.Atk.toInt()],stats[Stat.Atk.toInt()]);
+			}
+		}
+	}
+	
+	public void setMinSpA(int targetSpAStat) 
+	{
+		System.out.println("Finding minimum SpA stat. Our current stat is "+boostedStats[Stat.SpA.toInt()]+"; it must be larger than "+targetSpAStat);
+		int[] originalEVs = evs;
+		int originalLeft = evsLeft;
+		while(boostedStats[Stat.SpA.toInt()] < targetSpAStat && evsLeft > 3 && evs[Stat.SpA.toInt()] < 255)
+		{
+			evs[Stat.SpA.toInt()] += 4;
+			evsLeft -= 4;
+			stats[Stat.SpA.toInt()] = Pokequations.calculateStat(Stat.SpA, this);
+			boostedStats[Stat.SpA.toInt()] = Pokequations.statBoost(boosts[Stat.SpA.toInt()],stats[Stat.SpA.toInt()]);
+			System.out.println("Finding min SpA. Current: "+boostedStats[Stat.SpA.toInt()]+"; must be larger than "+targetSpAStat);
+		}
+		if(boostedStats[Stat.SpA.toInt()] < targetSpAStat && (evsLeft <= 0 || evs[Stat.SpA.toInt()] >= 252))
+		{
+			Nature originalNature = nature;
+			if(nature == Nature.Hardy)
+			{
+				nature = Nature.findPositiveNature(Stat.SpA, moveset);
+				//The results were skewed, so this EV spread might be inaccurate and we need to try again.
+				evs = originalEVs;
+				evsLeft = originalLeft;
+				stats[Stat.SpA.toInt()] = Pokequations.calculateStat(Stat.SpA, this);
+				boostedStats[Stat.SpA.toInt()] = Pokequations.statBoost(boosts[Stat.SpA.toInt()],stats[Stat.SpA.toInt()]);
+				setMinAttack(targetSpAStat);
+			}
+			if(item == null)
+			{
+				int count = 0;
+				for(int i = 0; i < 4; i++)
+				{
+					if(movesUsedSinceDeploy[i] == null)
+						continue;
+					else
+						count++;
+				}
+				if(count == 1)
+				{
+					item = new Item("Choice Specs");
+					//The results were skewed, so this EV spread might be inaccurate and we need to try again.
+					evs = originalEVs;
+					evsLeft = originalLeft;
+					nature = originalNature;
+					stats[Stat.SpA.toInt()] = Pokequations.calculateStat(Stat.SpA, this);
+					boostedStats[Stat.SpA.toInt()] = Pokequations.statBoost(boosts[Stat.SpA.toInt()],stats[Stat.SpA.toInt()]);
+					setMinAttack(targetSpAStat);
+				}
+			}
+			else
+			{
+				stats[Stat.SpA.toInt()] = Pokequations.calculateStat(Stat.SpA, this);
+				boostedStats[Stat.SpA.toInt()] = Pokequations.statBoost(boosts[Stat.SpA.toInt()],stats[Stat.SpA.toInt()]);
+			}
+		}
+	}
+
+	/**
+	 * @return
+	 */
+	public int getEVsLeft() 
+	{
+		return evsLeft;
 	}
 }

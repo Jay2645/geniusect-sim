@@ -1,5 +1,6 @@
 package geniusectsim.bridge;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.regex.Matcher;
@@ -13,6 +14,7 @@ import geniusectsim.actions.Action;
 import geniusectsim.actions.Attack;
 import geniusectsim.actions.Change;
 import geniusectsim.battle.Battle;
+import geniusectsim.battle.Damage;
 import geniusectsim.battle.Team;
 import geniusectsim.moves.Move;
 import geniusectsim.pokemon.Pokemon;
@@ -83,6 +85,7 @@ public class ShowdownHandler
 		}
 		catch(Exception e)
 		{
+			e.printStackTrace();
 			try
 			{
 				teamFromImportable(battle.getTeam(0, false));
@@ -91,6 +94,7 @@ public class ShowdownHandler
 			catch(Exception x)
 			{
 				System.err.println(x.getMessage());
+				x.printStackTrace();
 			}
 		}
 		return battle;
@@ -264,11 +268,12 @@ public class ShowdownHandler
 					String name = poke.getName();
 					String ability = helper.getAbility(name, username);
 					String item = helper.getItem(name, username);
-					int hp = poke.getHealth();
-					if(hp != helper.getHP(name, username))
+					double hp = Math.round((helper.getHP(name, username) / helper.getMaxHP(name, username)) * 100);
+					if(hp != poke.getHealth())
 					{
-						poke.setHP(helper.getHP(name, username), helper.getMaxHP(name, username));
-						hp = poke.getHealth();
+						System.err.println(name+" had "+poke.getHealth()+" HP, but Showdown reports "+hp);
+						//poke.setHP(hp, 100);
+						//hp = poke.getHealth();
 					}
 					if(ability != null && (poke.getAbility() == null || !poke.getAbility().getName().toLowerCase().contains(ability.toLowerCase())))
 						poke.setAbility(ability);
@@ -320,12 +325,11 @@ public class ShowdownHandler
 	 */
 	private static void findMove(String text)
 	{
+		System.out.println("Finding move from move text:\n"+text);
 		Pattern p = Pattern.compile("(.+) used (.+)!", Pattern.MULTILINE);
 		Matcher m = p.matcher(text);
 		Team t = null;
 		Pokemon[] moveOrder = new Pokemon[2];
-		//Team.players[0] = new Team(0);
-		//Team.players[1] = new Team(1);
 		while(m.find())
 		{
 			String tempname = text.substring(m.start(1), m.end(1));
@@ -341,16 +345,25 @@ public class ShowdownHandler
 			String moveDamage = text.substring(m.end(2));
 			boolean crit = false;
 			int dmg = 0;
-			Pattern dmgP = Pattern.compile("(.+) lost (.+)%");
-			Matcher dmgM = dmgP.matcher(moveDamage);
-			if(dmgM.find())
+			if(tempmove.toLowerCase().startsWith("recover") || tempmove.toLowerCase().startsWith("softboiled") || tempmove.toLowerCase().startsWith("roost"))
+				dmg = -50;
+			else if(tempmove.toLowerCase().startsWith("rest"))
 			{
-				String damage = moveDamage.substring(dmgM.start(1),dmgM.end(2));
-				if(!damage.contains(tempname))
+				poke.inflictStatus(Status.Rest);
+				dmg = -100;
+			}
+			{
+				Pattern dmgP = Pattern.compile("(.+) lost (.+)%");
+				Matcher dmgM = dmgP.matcher(moveDamage);
+				if(dmgM.find())
 				{
-					crit = damage.contains("critical hit");
-					damage = moveDamage.substring(dmgM.start(2),dmgM.end(2));
-					dmg = Integer.parseInt(damage);
+					String damage = moveDamage.substring(dmgM.start(1),dmgM.end(2));
+					if(!damage.contains(tempname))
+					{
+						crit = damage.contains("critical hit");
+						damage = moveDamage.substring(dmgM.start(2),dmgM.end(2));
+						dmg = Integer.parseInt(damage);
+					}
 				}
 			}
 			if(moveOrder[0] == null)
@@ -358,7 +371,7 @@ public class ShowdownHandler
 			else
 				moveOrder[1] = poke;
 			System.out.println(tempname+" used "+tempmove+" for "+dmg+"% damage. Was it a crit? "+crit);
-			poke.onNewTurn(tempmove, dmg, crit);
+			new Damage(tempmove,poke,poke.getEnemy(),dmg,crit);
 		}
 		findDrops(text);
 		if(moveOrder[0] != null && moveOrder[1] != null && moveOrder[1].isFasterThan(moveOrder[0]))
@@ -374,6 +387,7 @@ public class ShowdownHandler
 	 */
 	private static void findDrops(String text)
 	{
+		System.out.println("Finding stat drops from text: \n"+text);
 		Pattern whP = Pattern.compile("(.+) restored its status using White Herb!");
 		Matcher whM = whP.matcher(text);
 		String[] restore = new String[2];
@@ -475,6 +489,7 @@ public class ShowdownHandler
 	 */
 	private static boolean findPokemon(String text)
 	{
+		System.out.println("Finding Pokemon from text:\n"+text);
 		boolean switched = false;
 		String[] pokemon = new String[2];
 		String[] nicknames = new String[2];
@@ -574,5 +589,60 @@ public class ShowdownHandler
 	public static int getCurrentTurnNumber() 
 	{
 		return helper.getBattleLog().getCurrentTurn();
+	}
+
+	/**
+	 * Returns TRUE if the specified Pokemon is alive, else FALSE.
+	 * @param pokemon (Pokemon): The Pokemon to check.
+	 * @return TRUE if the specified Pokemon is alive, else FALSE.
+	 */
+	public static boolean isAlive(Pokemon pokemon) 
+	{
+		String owner = pokemon.getTeam().getUsername();
+		String name = pokemon.getName();
+		List<String> nameList = helper.getAliveTeam(owner);
+		String[] nameArray = new String[1];
+		nameArray = nameList.toArray(nameArray);
+		for(String pName : nameArray)
+		{
+			if(pName.toLowerCase().contains(name.toLowerCase()))
+				return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Returns all Pokemon 
+	 * @return
+	 */
+	public static Pokemon[] getSwitchableTeam() 
+	{
+		if(helper.isTrapped())
+			return null;
+		List<String> switchTeam = helper.getSwitchableTeam();
+		String[] switchArray = new String[1];
+		switchArray = switchTeam.toArray(switchArray);
+		ArrayList<Pokemon> pokeList = new ArrayList<Pokemon>();
+		Team player = battle.getTeam(0, false);
+		for(String name : switchArray)
+		{
+			Pokemon[] team = player.getPokemonTeam();
+			for(Pokemon poke : team)
+			{
+				if(poke == null)
+					continue;
+				if(poke.nameIs(name))
+				{
+					if(!poke.isAlive())
+						poke.setHP(1, 100);
+					pokeList.add(poke);
+					break;
+				}
+			}
+		}
+		Pokemon[] switchPokes = new Pokemon[1];
+		switchPokes = pokeList.toArray(switchPokes);
+		player.setSwitchableTeam(switchPokes);
+		return switchPokes;
 	}
 }

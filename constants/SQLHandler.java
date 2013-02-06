@@ -26,8 +26,6 @@ public class SQLHandler {
 	
 	public static void openConnection()
 	{
-		Throwable t = new Throwable();
-		t.printStackTrace();
 		if(conn == null)
 		{
 			System.out.println("Opening connection to SQL server.");
@@ -62,7 +60,7 @@ public class SQLHandler {
 		if(moveCache.containsKey(name))
 		{
 			Move cached = moveCache.get(name);
-			type = cached.type;
+			type = cached.getType();
 			shortname = cached.shortname;
 			power = cached.power;
 			moveType = cached.getMoveType();
@@ -86,7 +84,7 @@ public class SQLHandler {
 					int count = 0;
 					while (rs.next ())
 					{
-						type = Type.fromSQL(rs.getString("type"));
+						type = Type.fromString(rs.getString("type"));
 						shortname = rs.getString("shortname");
 						power = Integer.parseInt(rs.getString("power"));
 						String moveCategory = rs.getString("category");
@@ -122,17 +120,17 @@ public class SQLHandler {
 		}
 		System.out.println (
 			"Name: " + name +
-			"\n, Shortname: " + shortname +
-			"\n, Type: " + type +
-			"\n, Power: " + power +
-			"\n, Move Type: "+moveType +
-			"\n, Accuracy: " + accuracy +
-			"\n, Target: " + target +
-			"\n, Priority: " + priority +
-			"\n, PP: " + pp);
+			"\nShortname: " + shortname +
+			"\nType: " + type +
+			"\nPower: " + power +
+			"\nMove Type: "+moveType +
+			"\nAccuracy: " + accuracy +
+			"\nTarget: " + target +
+			"\nPriority: " + priority +
+			"\nPP: " + pp);
 		m.name = name;
 		m.shortname = shortname;
-		m.type = type;
+		m.setType(type);
 		m.setMoveType(moveType);
 		m.accuracy = accuracy;
 		m.target = target;
@@ -141,8 +139,8 @@ public class SQLHandler {
 		if(updateCache)
 		{
 			closeConnection();
-			moveCache.put(name, new Move(m));
-			moveCache.put(shortname, new Move(m));
+			moveCache.put(name, Move.clone(m));
+			moveCache.put(shortname, Move.clone(m));
 		}
 		return m;
 	}
@@ -163,7 +161,7 @@ public class SQLHandler {
 		if(moveCache.containsKey(shortname))
 		{
 			Move cached = moveCache.get(shortname);
-			type = cached.type;
+			type = cached.getType();
 			name = cached.name;
 			power = cached.power;
 			moveType = cached.getMoveType();
@@ -186,7 +184,7 @@ public class SQLHandler {
 				while (rs.next ())
 				{
 					name = rs.getString("name");
-					type = Type.fromSQL(rs.getString("type"));
+					type = Type.fromString(rs.getString("type"));
 					power = Integer.parseInt(rs.getString("power"));
 					String moveCategory = rs.getString("category");
 					if(moveCategory.toLowerCase().startsWith("special"))
@@ -230,7 +228,7 @@ public class SQLHandler {
 				"\nPP: " + pp);
 		m.name = name;
 		m.shortname = shortname;
-		m.type = type;
+		m.setType(type);
 		m.setMoveType(moveType);
 		m.accuracy = accuracy;
 		m.target = target;
@@ -239,8 +237,8 @@ public class SQLHandler {
 		if(updateCache)
 		{
 			closeConnection();
-			moveCache.put(name, new Move(m));
-			moveCache.put(shortname, new Move(m));
+			moveCache.put(name, Move.clone(m));
+			moveCache.put(shortname, Move.clone(m));
 		}
 		return m;
 	}
@@ -350,8 +348,8 @@ public class SQLHandler {
 					}
 					baseStats[i] = Integer.parseInt(stats[i]);
 				}
-				typing[0] = Type.fromSQL(types[0]); 
-				typing[1] = Type.fromSQL(types[1]);
+				typing[0] = Type.fromString(types[0]); 
+				typing[1] = Type.fromString(types[1]);
 				if(typing[0] == Type.None && baseStats[Stat.Def.toInt()] == 0 && baseStats[Stat.SpD.toInt()] == 0)
 				{
 					System.err.println(currentPokemon+" is not in the SQL table!");

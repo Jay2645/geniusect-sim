@@ -36,24 +36,6 @@ public class Action
 		}
 	}*/
 	
-	public void sendToShowdown(Battle b)
-	{
-		battle = b;
-		if(this instanceof Change)
-		{
-			Change c = (Change)this;
-			//TODO: Move the change counter to be team-specific rather than global.
-			changeCount++;
-			c.deploy();
-		}
-		else if(this instanceof Attack)
-		{
-			Attack a = (Attack) this;
-			changeCount = 0;
-			a.deploy();
-		}
-	}
-	
 	public void say(String text)
 	{
 		//Says some text at the end of a turn.
@@ -114,5 +96,15 @@ public class Action
 		//a.attempt = failure.attempt + 1;
 		//a.sendToShowdown(battle);
 		//battle.newTurn();
+	}
+
+	/**
+	 * Sends whatever message this Action is supposed to send to the chat.
+	 */
+	public void sendMessage() 
+	{
+		if(sayOnSend.isEmpty())
+			return;
+		say(sayOnSend);
 	}
 }

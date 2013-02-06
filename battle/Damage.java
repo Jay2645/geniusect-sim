@@ -1,6 +1,9 @@
 package geniusectsim.battle;
 
+import geniusectsim.constants.Pokequations;
 import geniusectsim.moves.Move;
+import geniusectsim.moves.MoveType;
+import geniusectsim.moves.Target;
 import geniusectsim.pokemon.Pokemon;
 
 
@@ -18,16 +21,28 @@ public class Damage {
 	}
 	public Damage(Move move, Pokemon attacker, Pokemon victim)
 	{
-		defender = victim;
 		this.attacker = attacker;
 		attack = move;
+		Target target = attack.target;
+		if(target == Target.Self ||target == Target.Allies || target == Target.AllySide)
+			defender = this.attacker;
+		else
+			defender = victim;
 	}
-	public Damage(Move move, Pokemon attacker, Pokemon victim, int damageDealt)
+	public Damage(String move, Pokemon attacker, Pokemon victim, int damageDealt, boolean wasCrit)
 	{
-		attack = move;
 		this.attacker = attacker;
 		defender = victim;
 		damage = damageDealt;
+		attack = this.attacker.onNewTurn(move, damageDealt, wasCrit);
+		if(attacker.getEVsLeft() > 3 && !attack.withinExpectedRange(damageDealt, victim, wasCrit))
+		{
+			int targetAtkStat = Pokequations.calculateAtkStat(this);
+			if(attack.getMoveType() == MoveType.Physical)
+				attacker.setMinAttack(targetAtkStat);
+			else if(attack.getMoveType() == MoveType.Special)
+				attacker.setMinSpA(targetAtkStat);
+		}
 	}
 	public Move attack = null;
 	public Pokemon attacker = null;

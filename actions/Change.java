@@ -8,7 +8,6 @@ package geniusectsim.actions;
 import geniusectsim.battle.EntryHazard;
 import geniusectsim.battle.Team;
 import geniusectsim.battle.Type;
-import geniusectsim.bridge.Simulator;
 import geniusectsim.constants.Pokequations;
 import geniusectsim.moves.Move;
 import geniusectsim.pokemon.Pokemon;
@@ -23,19 +22,6 @@ public class Change extends Action {
 	{
 		switchTo = changeTo;
 		name = switchTo.getName();
-	}
-	
-	public void deploy()
-	{
-		//Send next Pokemon to Showdown.
-		if(sent)
-			return;
-		//System.err.println("Sending to showdown on turn "+AIHandler.turnCount / 2);
-		System.err.println(switchTo.getTeam().getUsername()+" (TeamID "+switchTo.getTeam().getTeamID()+"): Go, "+switchTo.getName()+"!");
-		sent = true;
-		if(!sayOnSend.equals(""))
-			Simulator.print(sayOnSend);
-		Simulator.switchTo(this);
 	}
 	
 	public static int calculateSwitchDamagePercent(Pokemon change)

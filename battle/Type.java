@@ -24,7 +24,7 @@ public enum Type {
 		return name;
 	}
 	
-	public static Type fromSQL(String typeString)
+	public static Type fromString(String typeString)
 	{
 		if(typeString == null)
 			return Type.None;

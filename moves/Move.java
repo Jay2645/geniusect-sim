@@ -27,12 +27,12 @@ public class Move {
 	public int pp;
 	public int power;
 	public int accuracy;
-	public Type type;
+	protected Type type;
 	public Target target;
 	public Status condition = null; //A status condition to inflict upon a target.
 	public Map<VolatileStatus, Target> vol = new HashMap<VolatileStatus, Target>(); //The volatile status condition caused and its target.
 	public int boosts[] = {0,0,0,0,0,0};
-	public MoveType moveType = MoveType.Status;
+	protected MoveType moveType = MoveType.Status;
 	public int boostChance = 0;
 	public int recoilPercent = 0;
 	public int priority = 0;
@@ -45,30 +45,25 @@ public class Move {
 	
 	public Move(){}
 	
-	public Move(Move clone)
-	{
-		name = clone.name;
-		shortname = clone.shortname;
-		user = clone.user;
-		pp = clone.pp;
-		power = clone.power;
-		accuracy = clone.accuracy;
-		type = clone.type;
-		target = clone.target;
-		boosts = clone.boosts;
-		moveType = clone.getMoveType();
-		isContact = clone.getContact();
-		boostChance = clone.boostChance;
-		recoilPercent = clone.recoilPercent;
-		disabled = clone.disabled;
-		projectedDamage = clone.projectedDamage;
-		projectedPercent = clone.projectedPercent;
-	}
-	
 	public Move(String n, Pokemon p, boolean isShortname)
 	{
 		user = p;
-		if(isShortname == false)
+		if(isShortname)
+		{
+			shortname = n;
+			if(shortname.contains("hiddenpower"))
+			{
+				name = "Hidden Power";
+				pp = 24;
+				power = 70;
+				accuracy = 100;
+				//type = Type.Normal;
+				moveType = MoveType.Special;
+			}
+			else
+				SQLHandler.queryMoveShortname(this);
+		}
+		else
 		{
 			int i = n.indexOf("\n");
 			if(i == -1)
@@ -82,14 +77,19 @@ public class Move {
 				accuracy = 100;
 				type = Type.None;
 				recoilPercent = 25;
+				moveType = MoveType.Physical;
+			}
+			else if(name.toLowerCase().startsWith("hidden power"))
+			{
+				name = "Hidden Power";
+				pp = 24;
+				power = 70;
+				accuracy = 100;
+				//type = Type.Normal;
+				moveType = MoveType.Special;
 			}
 			else
 				SQLHandler.queryMove(this);
-		}
-		else
-		{
-			shortname = n;
-			SQLHandler.queryMoveShortname(this);
 		}
 		if(	name.toLowerCase().contains("overheat") || name.toLowerCase().contains("draco meteor") || //Hardcode these for now.
 			name.toLowerCase().contains("leaf storm") || name.toLowerCase().contains("psycho boost"))
@@ -103,21 +103,21 @@ public class Move {
 	public void onMoveUsed(Pokemon enemy, int damageDone, boolean wasCrit)
 	{
 		//Called when this move is used.
-		if(!user.isAlive())
+		if(!user.isAlive() || enemy == null)
 			return;
 		if(shortname != null);
 		{
 			if(shortname.equals("stealthrock"))
 			{
-				user.getEnemy().getTeam().addHazard(EntryHazard.StealthRock);
+				enemy.getTeam().addHazard(EntryHazard.StealthRock);
 			}
 			else if(shortname.equals("toxicspikes"))
 			{
-				user.getEnemy().getTeam().addHazard(EntryHazard.ToxicSpikes);
+				enemy.getTeam().addHazard(EntryHazard.ToxicSpikes);
 			}
 			else if(shortname.equals("spikes"))
 			{
-				user.getEnemy().getTeam().addHazard(EntryHazard.Spikes);
+				enemy.getTeam().addHazard(EntryHazard.Spikes);
 			}
 		}
 		if(user.getItem() != null && user.getItem().name != null && user.getItem().name.toLowerCase().startsWith("choice"))
@@ -142,8 +142,18 @@ public class Move {
 		}
 		if(!withinExpectedRange(damageDone,enemy,wasCrit))
 		{
-			//TODO: Adjust enemy EVs to make damage fall within expected range.
+			//TODO: Work out defense stat.
 		}
+	}
+	
+	public void setType(Type newType)
+	{
+		type = newType;
+	}
+	
+	public Type getType()
+	{
+		return type;
 	}
 	
 	public boolean withinExpectedRange(int damage, Pokemon p, boolean wasCrit)
@@ -156,6 +166,8 @@ public class Move {
 		{
 			damage /= 3;
 		}
+		if(!projectedPercent.containsKey(p))
+			adjustProjectedPercent(Pokequations.calculateDamagePercent(user,this,p),p);
 		if(damage < projectedPercent.get(p).x || damage > projectedPercent.get(p).y)
 			return false;
 		else return true;
@@ -280,5 +292,31 @@ public class Move {
 	public boolean isSpecial()
 	{
 		return moveType == MoveType.Special;
+	}
+	
+	public static Move clone(Move clone)
+	{
+		Move move;
+		if(clone instanceof HiddenPower)
+			move = new HiddenPower(clone);
+		else
+			move = new Move();
+		move.name = clone.name;
+		move.shortname = clone.shortname;
+		move.user = clone.user;
+		move.pp = clone.pp;
+		move.power = clone.power;
+		move.accuracy = clone.accuracy;
+		move.type = clone.type;
+		move.target = clone.target;
+		move.boosts = clone.boosts;
+		move.moveType = clone.getMoveType();
+		move.isContact = clone.getContact();
+		move.boostChance = clone.boostChance;
+		move.recoilPercent = clone.recoilPercent;
+		move.disabled = clone.disabled;
+		move.projectedDamage = clone.projectedDamage;
+		move.projectedPercent = clone.projectedPercent;
+		return move;
 	}
 }

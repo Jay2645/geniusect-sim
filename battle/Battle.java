@@ -230,70 +230,6 @@ public class Battle {
 		}
 	}
 	
-	/*public void newTurn()
-	{
-		newTurn(players[0]);
-	}
-	
-	public void newTurn(Team t)
-	{
-		if(!playing || t.getActive() == null)
-			return;
-		players[0].getActive().changeEnemy(players[1].getActive());
-		players[1].getActive().changeEnemy(players[0].getActive());
-		int turnNumber;
-		if(GeniusectAI.isLocal() || AIHandler.isSimulating())
-		{
-			turnCount++;
-			turnNumber = turnCount / 2;
-		}
-		else
-		{
-			turnCount = Simulator.getCurrentTurn();
-			turnNumber = turnCount;
-		}
-		System.out.println("\n\n\n");
-		if(AIHandler.isSimulating())
-			System.err.println("***********************************SIMULATED***********************************");
-		System.err.println("*******************************TEAM "+t.getTeamID()+", TURN "+(turnNumber)+"*******************************");
-		System.err.println("**************************ACTIVE POKEMON: "+t.getActive().getName()+"**************************");
-		System.err.println(criticalErrors);
-		//if(AIHandler.showdown != null && turnCount % 5 == 0)
-			//AIHandler.lastTurnLogic();
-		if(GeniusectAI.isLocal() || AIHandler.isSimulating())
-			lastTurnEnemy = nextTurn;
-		else
-		{
-			if(nextTurn != null)
-				nextTurn.updateLastTurn(this); //TODO: Remake lastTurnEnemy from the data here.
-			lastTurnUs = nextTurn;
-			//		TODO:
-			//		FETCH:
-			//		- Enemy move used (and if any boosts were obtained)
-			//		- The PP of the move we just used (and if any boosts were obtained)
-			//		CHECK:
-			//		- Status inflicted
-			//		- Entry hazards placed
-		}
-		if(AIHandler.isSimulating() || !playing)
-			return;
-		nextTurn = AIHandler.simulate();
-		if(nextTurn == null) //Should never happen, but I'm being pedantic.
-			return;
-		if(GeniusectAI.isLocal())
-		{
-			AIHandler.simulateTurn(this);
-			if(playing)
-			{
-				turnsToSimulate--;
-				if(turnsToSimulate > 0)
-					newTurn(Team.getEnemyTeam(t.getTeamID()));
-			}
-		}
-		else
-			nextTurn.sendToShowdown(this);
-	}*/
-	
 	public void gameOver(boolean won)
 	{
 		if(players[1].getAliveCount() > 1)
@@ -424,6 +360,15 @@ public class Battle {
 	public void setUsImportable(String usImportable) 
 	{
 		importableUs = usImportable;
+	}
+
+	/**
+	 * Returns a list of all errors.
+	 * @return (String): A list of all bad errors.
+	 */
+	public String getErrors() 
+	{
+		return criticalErrors;
 	}
 
 	/**
