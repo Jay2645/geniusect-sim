@@ -21,6 +21,10 @@ import javax.swing.*;
  */
 public class SimulatorGUI extends JApplet implements ActionListener 
 {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	Battle battle;
 	Action toDo;
 	Pokemon active = null;

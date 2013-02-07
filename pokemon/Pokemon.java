@@ -98,7 +98,7 @@ public class Pokemon {
 		fullHP = boostedStats[Stat.HP.toInt()];
 		if(team == null)
 			team = enemy.enemyTeam;
-		if(team.getTeamID() == 0)
+		if(team.getTeamID() == 0 && moveset[0] == null);
 		{
 			Simulator.getMoves(this);
 		}
@@ -267,6 +267,8 @@ public class Pokemon {
 	
 	public boolean isFasterThan(Pokemon compare)
 	{
+		if(compare == null)
+			return true;
 		return compare.boostedStats[Stat.Spe.toInt()] < boostedStats[Stat.Spe.toInt()];
 	}
 	
@@ -586,7 +588,7 @@ public class Pokemon {
 	
 	public boolean nameIs(String s)
 	{
-		return name.toLowerCase().startsWith(s.toLowerCase());
+		return name.toLowerCase().contains(s.toLowerCase()) || nickName.toLowerCase().contains(s.toLowerCase());
 	}
 	
 	public void chargeMove()
@@ -743,6 +745,10 @@ public class Pokemon {
 	 */
 	public int getID() 
 	{
+		if(id < 0)
+		{
+			id = team.getPokemonID(this);
+		}
 		return id;
 	}
 	
@@ -984,12 +990,8 @@ public class Pokemon {
 			i++;
 		}
 		if(found == null){
-			System.out.format("No Pokemon was found.%n");
+			System.out.format("No Pokemon was found. \n");
 			return null;
-		}
-		if(movesFound)
-		{
-			found.addMove(moves, false);
 		}
 		if(evsFound)
 		{
@@ -997,7 +999,15 @@ public class Pokemon {
 		}
 		else
 		{
-			System.out.format("No EVs were found.%n");
+			System.out.format("No EVs were found.\n");
+		}
+		if(movesFound)
+		{
+			found.addMove(moves, false);
+		}
+		else
+		{
+			System.out.println("No moves were found.\n");
 		}
 		found.query();
 		System.err.println(found.getMove(0).name);
@@ -1514,5 +1524,22 @@ public class Pokemon {
 	public int getEVsLeft() 
 	{
 		return evsLeft;
+	}
+
+	/**
+	 * Returns all the boosts we have expressed as LEVELS (i.e. 1, -4, etc.).
+	 * @return (int[]) An array of all boosts we have, as levels.
+	 */
+	public int[] getBoosts() 
+	{
+		return boosts;
+	}
+	
+	public void giveBoosts(int[] levels)
+	{
+		for(int i = 0; i < levels.length; i++)
+		{
+			giveBoosts(Stat.fromInt(i), levels[i]);
+		}
 	}
 }

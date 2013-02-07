@@ -157,32 +157,39 @@ public class ShowdownHandler
 		{
 			try 
 			{
+				System.err.println(((Attack) a).attacker.getName()+" used "+a.name+"!");
 				if(a.name.toLowerCase().startsWith("hidden power"))
 					helper.doMove("Hidden Power");
 				else
 					helper.doMove(a.name);
 			} catch (Exception e) 
 			{
-				System.err.println(((Attack)a).attacker.getName()+" could not do move "+a.name+"! Exception data:\n"+e);
-				Simulator.print("Exception! "+((Attack)a).attacker.getName()+" could not do move "+a.name+"!");
-				Action.onException(a, e, battle);
+				e.printStackTrace();
+				if(a == null || ((Attack)a).attacker == null)
+					System.err.println("The details of the attack were not specified (did you remember to set the move and attacker?)!");
+				else
+					System.err.println(((Attack)a).attacker.getName()+" could not do move "+a.name+"! Exception data:\n"+e);
+				//Simulator.print("Exception! "+((Attack)a).attacker.getName()+" could not do move "+a.name+"!");
+				//Action.onException(a, e, battle);
 			}
 		}
 		else if(a instanceof Change)
 		{
-			Team t = ((Change)a).switchTo.getTeam();
-			if(helper.isTrapped())
-			{
-				Pokemon active = t.getActive();
-				active.setUsableMoves(helper.getUsableMoves());
-				return new Attack();
-			}
 			try
 			{
+				Team t = ((Change)a).switchTo.getTeam();
+				if(helper.isTrapped())
+				{
+					Pokemon active = t.getActive();
+					active.setUsableMoves(helper.getUsableMoves());
+					return new Attack();
+				}
+				System.err.println("Go, "+a.name+"!");
 				helper.switchTo(a.name, false);
 			}
 			catch(Exception e)
 			{
+				System.err.println("Could not switch to "+a.name+". Exception stack trace:");
 				e.printStackTrace();
 			}
 		}
@@ -644,5 +651,13 @@ public class ShowdownHandler
 		switchPokes = pokeList.toArray(switchPokes);
 		player.setSwitchableTeam(switchPokes);
 		return switchPokes;
+	}
+
+	/**
+	 * Returns TRUE if we have won, else returns FALSE.
+	 * @return TRUE if we have won, else returns FALSE.
+	 */
+	protected static boolean getWon() {
+		return whatDo == TurnEndStatus.WON;
 	}
 }

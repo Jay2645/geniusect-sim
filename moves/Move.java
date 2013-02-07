@@ -8,6 +8,7 @@ package geniusectsim.moves;
 
 import geniusectsim.battle.EntryHazard;
 import geniusectsim.battle.Type;
+import geniusectsim.battle.Weather;
 import geniusectsim.bridge.Simulator;
 import geniusectsim.constants.Pokequations;
 import geniusectsim.constants.SQLHandler;
@@ -36,6 +37,7 @@ public class Move {
 	public int boostChance = 0;
 	public int recoilPercent = 0;
 	public int priority = 0;
+	public Weather weatherChange = null;
 	
 	public boolean isContact = false;
 	public boolean disabled = false;
@@ -62,6 +64,14 @@ public class Move {
 			}
 			else
 				SQLHandler.queryMoveShortname(this);
+			if(shortname.contains("raindance"))
+				weatherChange = Weather.Rain;
+			else if(shortname.contains("sunnyday"))
+				weatherChange = Weather.Sun;
+			else if(shortname.contains("sandstorm"))
+				weatherChange = Weather.Sandstorm;
+			else if(shortname.contains("hail"))
+				weatherChange = Weather.Hail;
 		}
 		else
 		{
@@ -90,11 +100,18 @@ public class Move {
 			}
 			else
 				SQLHandler.queryMove(this);
+			if(name.toLowerCase().contains("rain dance"))
+				weatherChange = Weather.Rain;
+			else if(name.toLowerCase().contains("sunny day"))
+				weatherChange = Weather.Sun;
+			else if(name.toLowerCase().contains("sandstorm"))
+				weatherChange = Weather.Sandstorm;
+			else if(name.toLowerCase().contains("hail"))
+				weatherChange = Weather.Hail;
 		}
 		if(	name.toLowerCase().contains("overheat") || name.toLowerCase().contains("draco meteor") || //Hardcode these for now.
 			name.toLowerCase().contains("leaf storm") || name.toLowerCase().contains("psycho boost"))
 		{
-			System.out.println(name+" lowers the SpA stat by two.");
 			boosts[Stat.SpA.toInt()] = -2;
 			boostChance = 1;
 		}
@@ -105,21 +122,6 @@ public class Move {
 		//Called when this move is used.
 		if(!user.isAlive() || enemy == null)
 			return;
-		if(shortname != null);
-		{
-			if(shortname.equals("stealthrock"))
-			{
-				enemy.getTeam().addHazard(EntryHazard.StealthRock);
-			}
-			else if(shortname.equals("toxicspikes"))
-			{
-				enemy.getTeam().addHazard(EntryHazard.ToxicSpikes);
-			}
-			else if(shortname.equals("spikes"))
-			{
-				enemy.getTeam().addHazard(EntryHazard.Spikes);
-			}
-		}
 		if(user.getItem() != null && user.getItem().name != null && user.getItem().name.toLowerCase().startsWith("choice"))
 		{
 			user.setLockedInto(this);
@@ -135,6 +137,40 @@ public class Move {
 		if(0 >= pp)
 		{
 			disabled = true;
+		}
+		if(shortname != null);
+		{
+			if(shortname.equals("stealthrock"))
+			{
+				enemy.getTeam().addHazard(EntryHazard.StealthRock);
+				return;
+			}
+			else if(shortname.equals("toxicspikes"))
+			{
+				enemy.getTeam().addHazard(EntryHazard.ToxicSpikes);
+				return;
+			}
+			else if(shortname.equals("spikes"))
+			{
+				enemy.getTeam().addHazard(EntryHazard.Spikes);
+				return;
+			}
+			else if(shortname.contains("rapidspin"))
+			{
+				user.getTeam().removeHazards();
+			}
+			else if(shortname.contains("powerswap"))
+			{
+				int[] boosts = user.getBoosts();
+				user.giveBoosts(enemy.getBoosts());
+				enemy.giveBoosts(boosts);
+			}
+		}
+		if(weatherChange != null)
+		{
+			//TODO: Adjust duration of weather moves based upon the held item.
+			weatherChange.setDuration(5);
+			user.getTeam().getBattle().setWeather(weatherChange);
 		}
 		if(!projectedPercent.containsKey(enemy));
 		{

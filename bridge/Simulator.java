@@ -22,13 +22,18 @@ public class Simulator
 {
 	
 	private static boolean isLocal = true;
+	private static boolean sendToggled = false;
 	private static Action userAction = null;
 	private static Action enemyAction = null;
 	private static Battle battle = null;
 	private static int teamCount = 0;
+	private static boolean battleStart = false;
 	
 	public static void isLocal(boolean local)
 	{
+		if(local == isLocal)
+			return;
+		System.out.println("Simulator is local? " + local);
 		if(local)
 			ShowdownHandler.closeShowdown();
 		else
@@ -90,10 +95,13 @@ public class Simulator
 	{
 		if(isLocal)
 		{
+			battleStart = true;
 			battle.battleStart();
 			return new Change();
 		}
-		return ShowdownHandler.battleStartAction();
+		Action toDo = ShowdownHandler.battleStartAction();
+		battleStart = toDo != null;
+		return toDo;
 	}
 	
 	/**
@@ -112,6 +120,7 @@ public class Simulator
 	
 	public static Team teamFromImportable(String importable)
 	{
+		System.out.println("Loading team from importable:\n"+importable);
 		Team team = new Team(teamCount, battle);
 		team.importImportable(importable);
 		if(teamCount == 0 && !isLocal)
@@ -268,7 +277,7 @@ public class Simulator
 				Damage damageDone = new Damage(attack.move, attacker, defender);
 				int damage = defender.onNewAttack(damageDone);
 				if(defender.isAlive())
-					System.err.println("Damage done: "+damage+"%");
+					System.err.println(attacker.getName()+" used "+attack.name+"! \nDamage done: "+damage+"%");
 				return damage;
 			}
 			else
@@ -281,9 +290,9 @@ public class Simulator
 			if(isLocal)
 			{
 				Change change = (Change)action;
-				System.out.println("Changing to "+change.switchTo.getName());
 				Team changeTo = change.switchTo.getTeam();
 				changeTo.changePokemon(change.switchTo);
+				System.err.println("Go, "+change.switchTo.getName()+"!");
 			}
 			else
 			{
@@ -310,7 +319,7 @@ public class Simulator
 	 */
 	public static void getMoves(Pokemon pokemon) 
 	{
-		if(isLocal)
+		if(isLocal || !battleStart)
 			return;
 		ShowdownHandler.getMoves(pokemon);
 	}
@@ -443,6 +452,20 @@ public class Simulator
 	 */
 	public static void toggleSend(boolean send) 
 	{
+		if(!sendToggled && isLocal)
+			return;
+		sendToggled = !sendToggled;
 		isLocal = !send;
+	}
+
+	/**
+	 * Returns TRUE if we have won or the game is local, else returns FALSE.
+	 * @return TRUE if we have won or the game is local, else returns FALSE.
+	 */
+	public static boolean getWon() 
+	{
+		if(isLocal)
+			return true;
+		else return ShowdownHandler.getWon();
 	}
 }

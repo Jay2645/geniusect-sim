@@ -453,35 +453,49 @@ public class Pokequations {
 		int defenderAliveCount = defender.getTeam().getAliveCount();
 		Point damage = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE + 1);
 		Weather weather = attacker.getTeam().getBattle().getWeather();
+		if(weather == null)
+			weather = Weather.None;
 		double adjustedDamage = 0;
 		int health = attacker.getHealth();
 		for(int i = 0; i < moveset.length; i++)
 		{
-			if(moveset[i] == null || moveset[i].disabled || moveset[i].pp <= 0 || moveset[i].shortname.equals("solarbeam") && weather != Weather.Sun)
+			if(moveset[i] == null || moveset[i].disabled || moveset[i].pp <= 0 || 
+					(moveset[i].name != null && moveset[i].name.toLowerCase().contains("solarbeam") || 
+					moveset[i].shortname != null && moveset[i].shortname.equals("solarbeam")) && weather != Weather.Sun)
 			{
 				if(attacker.getTeam().getTeamID() == 0)
 					System.err.println(attacker.getName()+"'s move "+moveset[i]+" is null or disabled!");
 				continue;
 			}
 			System.out.println("This move is "+moveset[i].name);
-			if(attackerAliveCount > 1 && defenderAliveCount > 2 && !defender.checkAbilities("Magic Bounce") && health > 60)
+			if(attackerAliveCount > 1)
 			{
-				if(moveset[i].shortname.equals("stealthrock"))
+				if(attackerTeam.hasHazards() && (moveset[i].name != null && moveset[i].name.toLowerCase().contains("rapid spin") || moveset[i].shortname != null && moveset[i].shortname.contains("rapidspin")))
+					return moveset[i];
+				else if(moveset[i].weatherChange != null && moveset[i].weatherChange != attackerTeam.getBattle().getWeather())
+					return moveset[i];
+				else if(!defender.checkAbilities("Magic Bounce") && health > 60  && defenderAliveCount > 2)
 				{
-					if(!defender.getTeam().hasMaxHazard(EntryHazard.StealthRock))
-						return moveset[i];
-				}
-				else if(moveset[i].shortname.equals("toxicspikes"))
-				{
-					if(!defender.getTeam().hasMaxHazard(EntryHazard.ToxicSpikes))
-						return moveset[i];
-				}
-				else if(moveset[i].shortname.equals("spikes"))
-				{
-					if(!defender.getTeam().hasMaxHazard(EntryHazard.Spikes))
-						return moveset[i];
+					if(moveset[i].name != null && moveset[i].name.toLowerCase().contains("stealth rock") || moveset[i].shortname != null && moveset[i].shortname.equals("stealthrock"))
+					{
+						if(!defender.getTeam().hasMaxHazard(EntryHazard.StealthRock))
+							return moveset[i];
+					}
+					else if(moveset[i].name != null && moveset[i].name.toLowerCase().contains("toxic spikes") || moveset[i].shortname != null && moveset[i].shortname.equals("toxicspikes"))
+					{
+						if(!defender.getTeam().hasMaxHazard(EntryHazard.ToxicSpikes))
+							return moveset[i];
+					}
+					else if(moveset[i].name != null && moveset[i].name.toLowerCase().contains("spikes") || moveset[i].shortname != null && moveset[i].shortname.equals("spikes"))
+					{
+						if(!defender.getTeam().hasMaxHazard(EntryHazard.Spikes))
+							return moveset[i];
+					}
 				}
 			}
+			if((attacker.getBoosts(Stat.SpA) - defender.getBoosts(Stat.SpA) <= -2 || attacker.getBoosts(Stat.Atk) - defender.getBoosts(Stat.Atk) <= -2) &&
+					(moveset[i].name != null && moveset[i].name.toLowerCase().contains("power swap") || moveset[i].shortname != null && moveset[i].shortname.equals("powerswap")))
+				return moveset[i];
 			if(use == null)
 			{
 				use = moveset[i];

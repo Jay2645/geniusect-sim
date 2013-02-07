@@ -174,6 +174,9 @@ public class Ability {
 		abilityDex.put("flash fire", new AbilityFlashFire());
 		abilityDex.put("drought", new AbilityDrought());
 		abilityDex.put("magic bounce", new AbilityMagicBounce());
+		abilityDex.put("sand stream", new AbilitySandStream());
+		abilityDex.put("drizzle", new AbilityDrizzle());
+		abilityDex.put("snow warning", new AbilitySnowWarning());
 	}
 	/*
 	{
@@ -414,15 +417,6 @@ public class Ability {
 			},
 			rating = 4,
 		},
-		"drizzle": {
-			shortDesc: "On switch-in, this Pokemon summons Rain Dance until another weather replaces it.",
-			onStart: function(user) {
-				this.setWeather('raindance');
-				this.weatherData.duration = 0;
-			},
-			rating = 5,
-		},
-		"drought"
 		"dryskin": {
 			shortDesc: "This Pokemon is healed 1/4 by Water, 1/8 by Rain; is hurt 1.25x by Fire, 1/8 by Sun.",
 			onImmunity: function(type, pokemon) {
@@ -1291,14 +1285,6 @@ public class Ability {
 			},
 			rating = 3.5,
 		},
-		"sandstream": {
-			shortDesc: "On switch-in, this Pokemon summons Sandstorm until another weather replaces it.",
-			onStart: function(user) {
-				this.setWeather('sandstorm');
-				this.weatherData.duration = 0;
-			},
-			rating = 5,
-		},
 		"sandveil": {
 			shortDesc: "If Sandstorm is active, this Pokemon's Evasion is 1.25x; immunity to Sandstorm.",
 			onImmunity: function(type, pokemon) {
@@ -1449,14 +1435,6 @@ public class Ability {
 				}
 			},
 			rating = 2,
-		},
-		"snowwarning": {
-			shortDesc: "On switch-in, this Pokemon summons Hail until another weather replaces it.",
-			onStart: function(user) {
-				this.setWeather('hail');
-				this.weatherData.duration = 0;
-			},
-			rating = 4.5,
 		},
 		"solarpower": {
 			shortDesc: "If Sunny Day is active, this Pokemon's Sp. Atk is 1.5x and loses 1/8 max HP per turn.",

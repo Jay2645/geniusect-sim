@@ -215,7 +215,7 @@ public class Team {
 		{
 			if(team[i] == null)
 				break;
-			if(team[i] == p)
+			if(team[i].nameIs(p.getName()))
 				return i;
 		}
 		return -1;
@@ -454,5 +454,24 @@ public class Team {
 				continue;
 			poke.setHP(0,100);
 		}
+	}
+
+	/**
+	 * Returns TRUE if there are entry hazards present on the field, else FALSE.
+	 * @return TRUE if there are entry hazards present on the field, else FALSE.
+	 */
+	public boolean hasHazards() 
+	{
+		return stealthRocks.getLevel() > 0 || spikes.getLevel() > 0 || toxicSpikes.getLevel() > 0;
+	}
+
+	/**
+	 * Removes all hazards from this team's side of the field.
+	 */
+	public void removeHazards() 
+	{
+		stealthRocks.clearLevel();
+		spikes.clearLevel();
+		toxicSpikes.clearLevel();
 	}
 }
