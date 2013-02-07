@@ -164,11 +164,12 @@ public class ShowdownHandler
 					helper.doMove(a.name);
 			} catch (Exception e) 
 			{
-				e.printStackTrace();
 				if(a == null || ((Attack)a).attacker == null)
 					System.err.println("The details of the attack were not specified (did you remember to set the move and attacker?)!");
 				else
-					System.err.println(((Attack)a).attacker.getName()+" could not do move "+a.name+"! Exception data:\n"+e);
+					System.err.println(((Attack)a).attacker.getName()+" could not do move "+a.name+"! Exception data:");
+				e.printStackTrace();
+				return nextTurn();
 				//Simulator.print("Exception! "+((Attack)a).attacker.getName()+" could not do move "+a.name+"!");
 				//Action.onException(a, e, battle);
 			}
@@ -322,7 +323,12 @@ public class ShowdownHandler
 	 */
 	protected static boolean canSwitch() 
 	{
-		return helper.isTrapped();
+		if(helper.isTrapped())
+			return false;
+		List<String> switchList = helper.getSwitchableTeam();
+		if(switchList.size() > 1)
+			return true;
+		return false;
 	}
 	
 	/**
@@ -377,13 +383,27 @@ public class ShowdownHandler
 				moveOrder[0] = poke;
 			else
 				moveOrder[1] = poke;
-			System.out.println(tempname+" used "+tempmove+" for "+dmg+"% damage. Was it a crit? "+crit);
-			new Damage(tempmove,poke,poke.getEnemy(),dmg,crit);
+			try
+			{
+				new Damage(tempmove,poke,poke.getEnemy(),dmg,crit);
+				System.out.println(tempname+" used "+tempmove+" for "+dmg+"% damage. Was it a crit? "+crit);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
 		}
-		findDrops(text);
-		if(moveOrder[0] != null && moveOrder[1] != null && moveOrder[1].isFasterThan(moveOrder[0]))
+		try
 		{
-			moveOrder[0].setMinSpeed(moveOrder[1].getBoostedStat(Stat.Spe));
+			findDrops(text);
+			if(moveOrder[0] != null && moveOrder[1] != null && moveOrder[1].isFasterThan(moveOrder[0]))
+			{
+				moveOrder[0].setMinSpeed(moveOrder[1].getBoostedStat(Stat.Spe));
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 	}
 	
@@ -563,7 +583,7 @@ public class ShowdownHandler
 		} 
 		catch (Exception e) 
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 			if(ability == null || !ability.getName().toLowerCase().startsWith("pressure"))
 				pp--;
 			else

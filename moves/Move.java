@@ -138,19 +138,19 @@ public class Move {
 		{
 			disabled = true;
 		}
-		if(shortname != null);
+		if(shortname != null && !shortname.isEmpty())
 		{
-			if(shortname.equals("stealthrock"))
+			if(shortname.contains("stealthrock"))
 			{
 				enemy.getTeam().addHazard(EntryHazard.StealthRock);
 				return;
 			}
-			else if(shortname.equals("toxicspikes"))
+			else if(shortname.contains("toxicspikes"))
 			{
 				enemy.getTeam().addHazard(EntryHazard.ToxicSpikes);
 				return;
 			}
-			else if(shortname.equals("spikes"))
+			else if(shortname.contains("spikes"))
 			{
 				enemy.getTeam().addHazard(EntryHazard.Spikes);
 				return;

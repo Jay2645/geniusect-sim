@@ -8,6 +8,7 @@ package geniusectsim.actions;
 import geniusectsim.battle.EntryHazard;
 import geniusectsim.battle.Team;
 import geniusectsim.battle.Type;
+import geniusectsim.bridge.Simulator;
 import geniusectsim.constants.Pokequations;
 import geniusectsim.moves.Move;
 import geniusectsim.pokemon.Pokemon;
@@ -18,10 +19,15 @@ public class Change extends Action {
 	
 	public Pokemon switchTo;
 
-	public void changeTo(Pokemon changeTo)
+	public boolean changeTo(Pokemon changeTo)
 	{
-		switchTo = changeTo;
-		name = switchTo.getName();
+		if(Simulator.canSwitch())
+		{
+			switchTo = changeTo;
+			name = switchTo.getName();
+			return true;
+		}
+		return false;
 	}
 	
 	public static int calculateSwitchDamagePercent(Pokemon change)
@@ -59,7 +65,7 @@ public class Change extends Action {
 		return damage;
 	}
 	
-	public static Pokemon bestCounter(Pokemon[] ourTeam, Pokemon enemy, Pokemon removeFromCalc)
+	public static Pokemon bestCounter(Pokemon us, Pokemon[] ourTeam, Pokemon enemy)
 	{
 		//Returns the best response to a threat.
 		int damage = Integer.MAX_VALUE;
@@ -69,9 +75,9 @@ public class Change extends Action {
 		{
 			if(ourTeam[i] == null)
 				continue;
-			if(removeFromCalc != null)
+			if(us != null)
 			{
-				if(ourTeam[i].getName().equals(removeFromCalc.getName()))
+				if(ourTeam[i].getName().equals(us.getName()))
 					continue;
 			}
 			if(ourTeam[i].isAlive())
@@ -102,7 +108,7 @@ public class Change extends Action {
 	
 	public static Pokemon bestCounter(Pokemon[] ourTeam, Pokemon enemy)
 	{
-		return bestCounter(ourTeam,enemy,null);
+		return bestCounter(null, ourTeam,enemy);
 	}
 	
 	public static Pokemon bestCounter(List<String> pokeTeam, Team ourTeam, Pokemon enemy)
@@ -112,7 +118,7 @@ public class Change extends Action {
 		{
 			team[i] = ourTeam.getPokemon(pokeTeam.get(i));
 		}
-		return bestCounter(team,enemy,null);
+		return bestCounter(null, team,enemy);
 	}
 	public static Pokemon bestChange(Pokemon us, Pokemon[] ourTeam, Pokemon enemy, Move predictedMove)
 	{
